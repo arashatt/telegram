@@ -62,7 +62,7 @@ export function buildBriefLines(submission) {
   const heading =
     lang === "fa" ? "درخواست جدید ساخت ربات تلگرام" : "New Telegram bot request";
 
-  const lines = [`<b>🍋 ${escapeHtml(heading)}</b>`, ""];
+  const lines = [`<b>📨 ${escapeHtml(heading)}</b>`, ""];
 
   for (const [icon, names, fields] of SECTIONS) {
     const rendered = fields
@@ -80,7 +80,7 @@ export function buildBriefLines(submission) {
   if (transcript.length) {
     lines.push(`💬 <b>${escapeHtml(lang === "fa" ? "گفت‌وگو" : "Conversation")}</b>`);
     for (const message of transcript) {
-      const who = message.role === "user" ? "👤" : "🍋";
+      const who = message.role === "user" ? "👤" : "🤖";
       lines.push(`${who} ${escapeHtml(message.content)}`);
     }
     lines.push("");

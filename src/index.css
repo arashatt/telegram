@@ -72,20 +72,10 @@ body {
   gap: 10px;
 }
 
-.brand > div {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.25;
-}
-
-.brand__name {
+.brand__title {
   font-weight: 700;
-  font-size: 1rem;
-}
-
-.brand__tagline {
-  font-size: 0.78rem;
-  color: var(--color-ink-soft);
+  font-size: 0.98rem;
+  line-height: 1.3;
 }
 
 .langswitch {
@@ -112,8 +102,8 @@ body {
 }
 
 @media (max-width: 520px) {
-  .brand__tagline {
-    display: none;
+  .brand__title {
+    font-size: 0.86rem;
   }
 }
 

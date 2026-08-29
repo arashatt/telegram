@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n.js";
 import RequirementsForm from "./RequirementsForm.jsx";
 import Receipt from "./Receipt.jsx";
-import { LemonMark, TypingMark } from "./Brand.jsx";
+import { Mark, TypingMark } from "./Brand.jsx";
 import "./Conversation.css";
 
 let nextId = 0;
@@ -285,7 +285,7 @@ function Bubble({ role, children, live = false }) {
     <li className={`bubble bubble--${role}`}>
       {role === "assistant" && (
         <span className="bubble__avatar" aria-hidden="true">
-          <LemonMark size={20} filled />
+          <Mark size={20} filled />
         </span>
       )}
       <div

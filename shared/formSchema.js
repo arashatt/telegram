@@ -68,7 +68,7 @@ export const SCALE_OPTIONS = [
 ];
 
 export const HOSTING_OPTIONS = [
-  opt("limoo", "Limoo Host runs it", "لیموهاست میزبانی کند"),
+  opt("provider", "You host it for us", "شما میزبانی کنید"),
   opt("client", "We host it ourselves", "خودمان میزبانی می‌کنیم"),
   opt("undecided", "Undecided", "هنوز تصمیم نگرفته‌ایم"),
 ];

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Conversation from "./components/Conversation.jsx";
-import { LemonMark } from "./components/Brand.jsx";
+import { Mark } from "./components/Brand.jsx";
 import {
   DEFAULT_LANG,
   LANGS,
@@ -27,7 +27,7 @@ export default function App() {
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = dirFor(lang);
-    document.title = `${dict.brand} — ${dict.tagline}`;
+    document.title = dict.siteTitle;
     try {
       localStorage.setItem(STORAGE_KEY, lang);
     } catch {
@@ -43,11 +43,8 @@ export default function App() {
       <div className="page">
         <header className="page__header">
           <div className="brand">
-            <LemonMark size={28} filled />
-            <div>
-              <span className="brand__name">{dict.brand}</span>
-              <span className="brand__tagline">{dict.tagline}</span>
-            </div>
+            <Mark size={28} filled />
+            <span className="brand__title">{dict.tagline}</span>
           </div>
           <button
             type="button"
