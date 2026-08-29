@@ -11,11 +11,13 @@
   "ai": {
     "binding": "AI"
   },
-  // Public OIDC client id — it travels in the authorization URL, so it is a
-  // plain var. TELEGRAM_CLIENT_SECRET is a secret and is never set here.
-  "vars": {
-    "TELEGRAM_CLIENT_ID": "8928298590"
-  },
+  // No "vars" block on purpose. Values declared here overwrite dashboard-set
+  // variables on every deploy, so runtime configuration lives entirely in
+  // Cloudflare's "Variables and Secrets" panel instead:
+  //   TELEGRAM_BOT_TOKEN      (secret)  deliver briefs
+  //   TELEGRAM_CHAT_ID        (secret)  where briefs land
+  //   TELEGRAM_CLIENT_SECRET  (secret)  Telegram sign-in
+  // Optional overrides documented in .dev.vars.example.
   // Per-IP caps. Chat and extraction each cost a Workers AI call, so they are
   // the expensive endpoints to protect; submissions are rarer and stricter.
   // "period" only accepts 10 or 60.
