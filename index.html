@@ -28,7 +28,64 @@
     <link
       href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+
+    <!-- Critical CSS, inline so the first paint is never unstyled. The markup
+         below #root is replaced by the app, but it is what a visitor sees
+         while the bundle loads and what a crawler without JavaScript reads —
+         neither should get a bare browser-default document. -->
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      body {
+        margin: 0;
+        background: #fffdf6;
+        color: #201a0a;
+        font-family: "Vazirmatn", "Segoe UI", system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      #root > main {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 64px 24px;
+        line-height: 1.65;
+      }
+      #root > main h1 {
+        margin: 0 0 14px;
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        letter-spacing: -0.01em;
+      }
+      #root > main h2 {
+        margin: 30px 0 8px;
+        font-size: 0.78rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #e89a00;
+      }
+      #root > main p,
+      #root > main li {
+        color: #6b5f45;
+      }
+      #root > main p {
+        margin: 0 0 12px;
+      }
+      #root > main ul {
+        margin: 0;
+        padding-inline-start: 1.15em;
+      }
+      #root > main li {
+        margin-bottom: 5px;
+      }
+    </style>
 
     <script type="application/ld+json">
       {

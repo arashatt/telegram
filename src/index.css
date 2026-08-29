@@ -69,35 +69,12 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
 }
 
-/* Sits beside the mark at the start of the header — top-left in English,
-   top-right once the page flips to RTL, which is the same corner to a Persian
-   reader. */
-.newchat {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--color-mist-strong);
-  background: var(--color-panel);
-  color: var(--color-ink);
-  border-radius: 999px;
-  padding: 7px 15px 7px 12px;
-  font-family: var(--font-display);
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.newchat:hover {
-  border-color: var(--color-yellow-deep);
-  background: var(--color-mist);
-}
-
-.newchat__plus {
-  font-size: 1.05rem;
-  line-height: 1;
+.brand:hover .brand__title {
   color: var(--color-yellow-deep);
 }
 

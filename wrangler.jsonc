@@ -6,7 +6,13 @@
   "observability": { "enabled": true },
   "assets": {
     "not_found_handling": "single-page-application",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // Without this, "single-page-application" makes the asset router answer
+    // browser navigations to /api/* with index.html before the Worker runs —
+    // which sent the sign-in popup and the OIDC callback to the home page.
+    // API calls made with fetch() were unaffected, so it only broke the two
+    // routes that are real navigations.
+    "run_worker_first": ["/api/*"]
   },
   "ai": {
     "binding": "AI"

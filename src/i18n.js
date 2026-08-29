@@ -23,9 +23,6 @@ export const translations = {
     networkError:
       "Couldn't reach the assistant. Check your connection and try again.",
     retry: "Try again",
-    newChat: "New chat",
-    startOver: "Start over",
-    startOverConfirm: "Clear this conversation and start a new one?",
 
     switchedToFa: "Switched to Persian.",
 
@@ -115,9 +112,6 @@ export const translations = {
     thinking: "در حال فکر کردن…",
     networkError: "ارتباط با دستیار برقرار نشد. اتصال خود را بررسی و دوباره تلاش کنید.",
     retry: "تلاش دوباره",
-    newChat: "گفت‌وگوی جدید",
-    startOver: "شروع دوباره",
-    startOverConfirm: "این گفت‌وگو پاک شود و از نو شروع کنیم؟",
 
     switchedToFa: "زبان سایت به فارسی تغییر کرد.",
 
