@@ -1,5 +1,6 @@
 :root {
   --color-paper: #fffdf6;
+  --color-panel: #ffffff;
   --color-ink: #201a0a;
   --color-ink-soft: #6b5f45;
   --color-yellow: #ffb222;
@@ -7,13 +8,18 @@
   --color-leaf: #4c7a3d;
   --color-mist: #efe9d8;
   --color-mist-strong: #e2d9bf;
+  --color-danger: #a4392a;
 
-  --font-display: "Vazirmatn", "Segoe UI", sans-serif;
+  --font-display: "Vazirmatn", "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   --radius-lg: 20px;
   --radius-md: 14px;
   --radius-sm: 8px;
+
+  --shell: 780px;
+  --shadow-soft: 0 6px 20px rgba(32, 26, 10, 0.06);
+  --shadow-lift: 0 14px 40px rgba(32, 26, 10, 0.12);
 }
 
 * {
@@ -31,41 +37,84 @@ body {
   font-family: var(--font-display);
   background: var(--color-paper);
   color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Demo page shell — stands in for the host site the widget sits on */
-.demo-page {
-  min-height: 100%;
+/* Full-height column: a fixed header, a scrolling conversation, and a
+   composer pinned to the bottom edge. */
+.page {
+  height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.page__header {
+  flex: none;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 48px 24px;
-  text-align: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-mist-strong);
+  background: color-mix(in srgb, var(--color-paper) 88%, transparent);
+  backdrop-filter: blur(8px);
 }
 
-.demo-page h1 {
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
+.page__main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand > div {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.brand__name {
   font-weight: 700;
-  margin: 0;
-  letter-spacing: -0.01em;
+  font-size: 1rem;
 }
 
-.demo-page p {
+.brand__tagline {
+  font-size: 0.78rem;
   color: var(--color-ink-soft);
-  max-width: 32ch;
-  margin: 0;
-  line-height: 1.5;
 }
 
-.demo-page .eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-yellow-deep);
-  margin-bottom: 4px;
+.langswitch {
+  border: 1px solid var(--color-mist-strong);
+  background: var(--color-panel);
+  color: var(--color-ink);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.langswitch:hover {
+  border-color: var(--color-yellow-deep);
+  background: var(--color-mist);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-yellow-deep);
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .brand__tagline {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -75,5 +124,6 @@ body {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

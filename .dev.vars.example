@@ -1,0 +1,15 @@
+# Copy to .dev.vars for `npm run preview`, and set the same names as Worker
+# secrets for production:  npx wrangler secret put TELEGRAM_BOT_TOKEN
+
+# Required — where finished briefs are delivered.
+# Token from @BotFather; the bot must be able to post to the chat below.
+TELEGRAM_BOT_TOKEN=123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# Your user id, a group id (negative, e.g. -1001234567890) or a channel id.
+TELEGRAM_CHAT_ID=-1001234567890
+
+# Optional — post into one topic of a forum-style group.
+# TELEGRAM_TOPIC_ID=42
+
+# Optional — mirror the raw JSON brief to your own endpoint as well.
+# REQUIREMENTS_WEBHOOK_URL=https://example.com/hooks/bot-brief
+# REQUIREMENTS_WEBHOOK_SECRET=sent-as-a-bearer-token
