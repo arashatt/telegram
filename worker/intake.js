@@ -19,7 +19,7 @@ const LANGUAGE_RULE = {
    interview and duplicates the form. */
 export function chatSystemPrompt(lang, formSubmitted) {
   const base = [
-    "You are the intake assistant for Limoo Host, a studio that builds custom Telegram bots.",
+    "You are the intake assistant for a studio that builds custom Telegram bots.",
     LANGUAGE_RULE[lang] ?? LANGUAGE_RULE.en,
     "Be warm, concrete and brief: at most three short sentences.",
     "Never invent prices, delivery dates or technical guarantees.",

@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 
 export const LANGS = ["en", "fa"];
 export const DEFAULT_LANG = "fa";
-export const STORAGE_KEY = "limoo.lang";
+export const STORAGE_KEY = "intake.lang";
 
 export function dirFor(lang) {
   return lang === "fa" ? "rtl" : "ltr";
@@ -10,13 +10,13 @@ export function dirFor(lang) {
 
 export const translations = {
   en: {
-    brand: "Limoo Host",
+    siteTitle: "Telegram bot intake",
     tagline: "Telegram bots, built to your spec",
     langToggle: "فارسی",
     langToggleLabel: "Switch to Persian",
 
     greeting:
-      "Hi — I'm the intake assistant at Limoo Host. Tell me about the Telegram bot you want built: what should it do, and who is it for?",
+      "Hi — I'm the intake assistant here. Tell me about the Telegram bot you want built: what should it do, and who is it for?",
     placeholder: "Describe the bot you want…",
     placeholderAfterForm: "Anything else we should know?",
     send: "Send",
@@ -85,13 +85,13 @@ export const translations = {
   },
 
   fa: {
-    brand: "لیموهاست",
+    siteTitle: "ثبت سفارش ربات تلگرام",
     tagline: "ربات تلگرام، دقیقاً مطابق نیاز شما",
     langToggle: "English",
     langToggleLabel: "تغییر به انگلیسی",
 
     greeting:
-      "سلام! من دستیار ثبت سفارش لیموهاست هستم. درباره رباتی که می‌خواهید بسازیم بگویید: قرار است چه کاری انجام دهد و مخاطبش چه کسی است؟",
+      "سلام! من دستیار ثبت سفارش هستم. درباره رباتی که می‌خواهید بسازیم بگویید: قرار است چه کاری انجام دهد و مخاطبش چه کسی است؟",
     placeholder: "رباتی که می‌خواهید را توضیح دهید…",
     placeholderAfterForm: "نکته دیگری هست که باید بدانیم؟",
     send: "ارسال",

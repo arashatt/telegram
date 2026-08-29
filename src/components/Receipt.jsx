@@ -1,6 +1,6 @@
 import { CHOICE_FIELDS, labelFor } from "../../shared/formSchema.js";
 import { useI18n } from "../i18n.js";
-import { LemonMark } from "./Brand.jsx";
+import { Mark } from "./Brand.jsx";
 
 const listSeparator = (lang) => (lang === "fa" ? "، " : ", ");
 
@@ -44,7 +44,7 @@ export default function Receipt({ form, reference }) {
   return (
     <div className="receipt">
       <div className="receipt__head">
-        <LemonMark size={22} filled />
+        <Mark size={22} filled />
         <div>
           <h2 className="receipt__title">{t("sentTitle")}</h2>
           <p className="receipt__body">{t("sentBody")}</p>

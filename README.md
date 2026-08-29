@@ -1,4 +1,4 @@
-# Telegram bot intake — Limoo Host
+# Telegram bot intake
 
 A conversational intake site for a studio that builds custom Telegram bots.
 A visitor describes the bot they want in a full-page conversation; the

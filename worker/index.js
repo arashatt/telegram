@@ -100,7 +100,7 @@ async function handleRequirements(request, env) {
   // Honeypot: a real visitor never sees this field, so anything in it is a
   // bot. Answer as if it worked and drop the submission on the floor.
   if (typeof body?.website === "string" && body.website.trim()) {
-    return json({ ok: true, reference: "LB-000000" });
+    return json({ ok: true, reference: "REQ-000000" });
   }
 
   const lang = normalizeLang(body?.lang);
@@ -115,7 +115,8 @@ async function handleRequirements(request, env) {
     return json({ error: "delivery_not_configured" }, 503);
   }
 
-  const reference = "LB-" + crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
+  const reference =
+    "REQ-" + crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
   const submission = {
     reference,
     lang,
