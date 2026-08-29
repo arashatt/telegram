@@ -119,12 +119,10 @@ still reads correctly. Option labels carry both languages in
 `shared/formSchema.js` because the Worker renders them into the Telegram
 message too.
 
-## New chat
+## Going home
 
-The header carries a **New chat** control at the start — top-left in English,
-top-right in RTL, which is the same corner to a Persian reader. It remounts the
-conversation from scratch, and asks first if there is a conversation in
-progress worth losing.
+The brand at the start of the header is a plain link to `/`. Nothing is
+persisted, so a fresh load is a fresh conversation.
 
 ## Keeping the form small
 
@@ -259,6 +257,12 @@ different models.
 
 ## SEO
 
+Critical CSS is inlined in `<head>` and the webfont stylesheet is loaded
+asynchronously, so the first paint is never an unstyled document — the fonts
+are served from a host that is slow or blocked for a good share of this site's
+audience, and a render-blocking link there meant the fallback markup appeared
+bare.
+
 The page ships static, crawlable content inside `#root` that React replaces on
 load: an `h1`, what gets built, and how it works. Crawlers that do not execute
 JavaScript still get a real description of the page, and it says the same thing
@@ -271,6 +275,15 @@ Open Graph and Twitter tags, two JSON-LD blocks (`ProfessionalService` and
 **Before launch, replace `example.com`** in `index.html` (canonical, `og:url`,
 JSON-LD), `public/robots.txt` and `public/sitemap.xml` with the real domain,
 and add an `og.png` to `public/`.
+
+## A note on asset routing
+
+`wrangler.jsonc` sets `assets.run_worker_first: ["/api/*"]`. Without it,
+`not_found_handling: "single-page-application"` makes the asset router answer
+browser *navigations* to `/api/…` with `index.html` before the Worker runs.
+`fetch()` calls were unaffected, so only the two API routes that are real
+navigations broke — the sign-in popup and the OIDC callback, both landing on
+the home page.
 
 ## Endpoints
 

@@ -27,8 +27,6 @@ export default function App() {
   const [phase, setPhase] = useState("idle");
   const [sunset, setSunset] = useState(false);
   const [notice, setNotice] = useState(false);
-  const [chatKey, setChatKey] = useState(0);
-  const [dirty, setDirty] = useState(false);
   const langRef = useRef(null);
   const timers = useRef([]);
   const dict = translations[lang];
@@ -73,13 +71,6 @@ export default function App() {
     document.title = dict.siteTitle;
   }, [lang, dict]);
 
-  function startNewChat() {
-    // Only interrupt when there is something to lose.
-    if (dirty && !window.confirm(dict.startOverConfirm)) return;
-    setDirty(false);
-    setChatKey((key) => key + 1);
-  }
-
   const context = useMemo(() => ({ lang, setLang: requestLang }), [lang, requestLang]);
   const session = useTelegramSession();
 
@@ -89,17 +80,12 @@ export default function App() {
       <div className="page" data-phase={phase}>
         <DayNight active={sunset} />
         <header className="page__header">
-          <div className="brand">
+          {/* The whole brand is the way home. A fresh load is a fresh
+              conversation, since nothing is persisted. */}
+          <a className="brand" href="/">
             <Mark size={28} filled />
             <span className="brand__title">{dict.tagline}</span>
-          </div>
-
-          <button type="button" className="newchat" onClick={startNewChat}>
-            <span className="newchat__plus" aria-hidden="true">
-              +
-            </span>
-            {dict.newChat}
-          </button>
+          </a>
 
           <div className="page__header-end">
             <SignIn />
@@ -107,7 +93,7 @@ export default function App() {
         </header>
 
         <main className="page__main">
-          <Conversation key={chatKey} onActivity={setDirty} />
+          <Conversation />
         </main>
 
         <div className="langnotice" role="status" aria-live="polite">
