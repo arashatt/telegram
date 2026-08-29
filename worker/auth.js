@@ -40,7 +40,7 @@ export function isAuthConfigured(env) {
   return Boolean(env?.TELEGRAM_CLIENT_SECRET);
 }
 
-function redirectUri(request, env) {
+export function redirectUri(request, env) {
   return env.TELEGRAM_REDIRECT_URI || new URL("/api/auth/telegram/callback", request.url).toString();
 }
 
