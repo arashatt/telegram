@@ -1,21 +1,69 @@
-import ChatWidget from "./components/ChatWidget.jsx";
-import {useSearchParams} from 'react-router-dom';
+import { useEffect, useMemo, useState } from "react";
+import Conversation from "./components/Conversation.jsx";
+import { LemonMark } from "./components/Brand.jsx";
+import {
+  DEFAULT_LANG,
+  LANGS,
+  LangContext,
+  STORAGE_KEY,
+  dirFor,
+  translations,
+} from "./i18n.js";
+
+function initialLang() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored && LANGS.includes(stored)) return stored;
+  } catch {
+    // Storage can be blocked (private mode, embedded frames) — fall through.
+  }
+  return DEFAULT_LANG;
+}
 
 export default function App() {
-  const [searchParams] = useSearchParams();
+  const [lang, setLang] = useState(initialLang);
+  const dict = translations[lang];
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = dirFor(lang);
+    document.title = `${dict.brand} — ${dict.tagline}`;
+    try {
+      localStorage.setItem(STORAGE_KEY, lang);
+    } catch {
+      // Persisting the choice is a convenience, not a requirement.
+    }
+  }, [lang, dict]);
+
+  const context = useMemo(() => ({ lang, setLang }), [lang]);
+  const other = LANGS.find((l) => l !== lang) ?? DEFAULT_LANG;
 
   return (
-    <div className="demo-page">
-      <div className="eyebrow">Limoo Host</div>
-      <h1>Custom Telegram bots, built for you</h1>
-      <p>
-        Tell the assistant in the corner what you need — it'll ask the right
-        questions and pass your request straight to our team.
-      </p>
-    <script async src="https://oauth.telegram.org/js/telegram-login.js?6" data-client-id="8928298590" data-onauth="console.log(data)" data-request-access="write"></script>
+    <LangContext.Provider value={context}>
+      <div className="page">
+        <header className="page__header">
+          <div className="brand">
+            <LemonMark size={28} filled />
+            <div>
+              <span className="brand__name">{dict.brand}</span>
+              <span className="brand__tagline">{dict.tagline}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="langswitch"
+            onClick={() => setLang(other)}
+            aria-label={dict.langToggleLabel}
+            lang={other}
+          >
+            {dict.langToggle}
+          </button>
+        </header>
 
-<button class="tg-auth-button">Sign In with Telegram</button>
-      <ChatWidget endpoint="/api/chat/stream" companyName="Limoo Host" />
-    </div>
+        <main className="page__main">
+          <Conversation />
+        </main>
+      </div>
+    </LangContext.Provider>
   );
 }

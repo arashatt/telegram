@@ -1,0 +1,242 @@
+.reqform {
+  background: var(--color-panel);
+  border: 1px solid var(--color-mist-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  overflow: hidden;
+}
+
+.reqform__head {
+  padding: 20px 22px 16px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-yellow) 16%, var(--color-panel)),
+    var(--color-panel)
+  );
+  border-block-end: 1px solid var(--color-mist);
+}
+
+.reqform__head h2 {
+  margin: 0 0 4px;
+  font-size: 1.08rem;
+}
+
+.reqform__head p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+}
+
+.reqform__section {
+  border: none;
+  border-block-end: 1px solid var(--color-mist);
+  margin: 0;
+  padding: 20px 22px;
+  display: grid;
+  gap: 16px;
+}
+
+.reqform__section > legend {
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-yellow-deep);
+}
+
+.reqform__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.reqform__hint {
+  margin: -4px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+}
+
+.reqform__foot {
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.reqform__submit {
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 13px 26px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.reqform__submit:not(:disabled):hover {
+  background: var(--color-yellow-deep);
+}
+
+.reqform__submit:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.reqform__error {
+  margin: 0;
+  margin-inline-end: auto;
+  color: var(--color-danger);
+  font-size: 0.84rem;
+}
+
+/* Visible to a scraper, unreachable for a person: no display:none, which some
+   bots skip, but off-screen and out of the tab order. */
+.reqform__honeypot {
+  position: absolute;
+  inset-inline-start: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* ---- fields ---- */
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field--checks {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.field__label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.field__badge {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--color-yellow-deep);
+  background: color-mix(in srgb, var(--color-yellow) 22%, transparent);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.field__control {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--color-mist-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+textarea.field__control {
+  resize: vertical;
+  min-height: 68px;
+}
+
+select.field__control {
+  cursor: pointer;
+}
+
+.field__control[aria-invalid="true"] {
+  border-color: var(--color-danger);
+  background: rgba(164, 57, 42, 0.04);
+}
+
+.field__hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+}
+
+.field__error {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-danger);
+}
+
+/* ---- checkbox chips ---- */
+
+.checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.checks--inline {
+  grid-template-columns: repeat(auto-fill, minmax(120px, auto));
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--color-mist-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.check:hover {
+  border-color: var(--color-yellow-deep);
+}
+
+.check--on {
+  border-color: var(--color-yellow-deep);
+  background: color-mix(in srgb, var(--color-yellow) 14%, transparent);
+}
+
+.check input {
+  accent-color: var(--color-yellow-deep);
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin: 0;
+}
+
+.check:has(input:focus-visible) {
+  outline: 2px solid var(--color-yellow-deep);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .reqform__pair {
+    grid-template-columns: 1fr;
+  }
+
+  .reqform__section,
+  .reqform__head,
+  .reqform__foot {
+    padding-inline: 16px;
+  }
+
+  .checks {
+    grid-template-columns: 1fr;
+  }
+}
