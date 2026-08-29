@@ -240,3 +240,118 @@ select.field__control {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- progressive disclosure ---- */
+
+.reqform__more {
+  padding: 16px 22px;
+  border-block-end: 1px solid var(--color-mist);
+}
+
+.reqform__disclosure {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  cursor: pointer;
+  text-align: start;
+}
+
+.reqform__disclosure:hover {
+  color: var(--color-yellow-deep);
+}
+
+.reqform__chevron {
+  display: inline-block;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+/* The glyph points inline-end, so RTL needs the opposite resting rotation. */
+.reqform__chevron--open {
+  transform: rotate(90deg);
+}
+
+[dir="rtl"] .reqform__chevron {
+  transform: rotate(180deg);
+}
+
+[dir="rtl"] .reqform__chevron--open {
+  transform: rotate(90deg);
+}
+
+.reqform__optional {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+}
+
+.reqform__more .reqform__hint {
+  margin: 8px 0 0;
+  padding-inline-start: 20px;
+  line-height: 1.6;
+}
+
+.reqform__reveal {
+  animation: reveal-in 0.24s ease-out;
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- telegram sign-in ---- */
+
+.tglogin {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px dashed var(--color-mist-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+}
+
+.tglogin__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tglogin__title {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+/* The widget renders an iframe of its own; keep it from stretching the row. */
+.tglogin__widget {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.tglogin__verified {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(76, 122, 61, 0.1);
+  color: var(--color-leaf);
+  font-size: 0.86rem;
+  font-weight: 500;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BOT_LANGUAGE_OPTIONS,
   BOT_TYPE_OPTIONS,
@@ -12,7 +12,24 @@ import {
   validateForm,
 } from "../../shared/formSchema.js";
 import { errorMessage, useI18n } from "../i18n.js";
+import TelegramLogin from "./TelegramLogin.jsx";
 import "./RequirementsForm.css";
+
+/* Everything behind the disclosure. All of it has a working default, so the
+   form is complete without ever opening this. */
+const DETAIL_FIELDS = [
+  "botName",
+  "botType",
+  "features",
+  "botLanguages",
+  "audience",
+  "scale",
+  "integrations",
+  "hosting",
+  "timeline",
+  "budget",
+  "notes",
+];
 
 export default function RequirementsForm({ prefill = {}, onSubmit }) {
   const { t, lang } = useI18n();
@@ -20,9 +37,15 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [verified, setVerified] = useState(null);
   const [invalidTick, setInvalidTick] = useState(0);
+  const telegramAuth = useRef(null);
   const honeypot = useRef(null);
   const formRef = useRef(null);
+
+  const prefilled = new Set(Object.keys(prefill));
+  const prefilledDetails = DETAIL_FIELDS.some((field) => prefilled.has(field));
 
   /* Focus has to wait for the commit that paints aria-invalid — querying the
      DOM straight after setErrors finds the pre-render markup. */
@@ -30,8 +53,6 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
     if (!invalidTick) return;
     formRef.current?.querySelector("[aria-invalid='true']")?.focus();
   }, [invalidTick]);
-
-  const prefilled = new Set(Object.keys(prefill));
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -52,6 +73,29 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
     );
   }
 
+  /* A verified sign-in fills the contact fields it can prove, and satisfies
+     the "reach you somehow" rule on its own.
+
+     Stable by necessity, not habit: TelegramLogin re-mounts its script when
+     this changes, so an unmemoised version would tear the widget down and
+     rebuild it on every keystroke in the form. */
+  const handleVerified = useCallback((user, payload) => {
+    telegramAuth.current = payload;
+    setVerified(user);
+    const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+    setForm((prev) => ({
+      ...prev,
+      contactName: prev.contactName || name,
+      telegram: user.username ? `@${user.username}` : prev.telegram,
+    }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.contactChannel;
+      if (name) delete next.contactName;
+      return next;
+    });
+  }, []);
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (submitting) return;
@@ -59,6 +103,8 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
     const found = validateForm(form);
     setErrors(found);
     if (Object.keys(found).length) {
+      // Never leave an error hidden behind the disclosure.
+      if (DETAIL_FIELDS.some((field) => found[field])) setOpen(true);
       setInvalidTick((tick) => tick + 1);
       return;
     }
@@ -66,9 +112,12 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await onSubmit(form, { website: honeypot.current?.value ?? "" });
-    } catch {
-      setSubmitError("submitFailed");
+      await onSubmit(form, {
+        website: honeypot.current?.value ?? "",
+        telegramAuth: telegramAuth.current,
+      });
+    } catch (err) {
+      setSubmitError(err?.message === "rate_limited" ? "rateLimited" : "submitFailed");
       setSubmitting(false);
     }
   }
@@ -83,51 +132,85 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
       </header>
 
       <fieldset className="reqform__section">
-        <legend>{t("sectionBot")}</legend>
-        <Text field="botName" hint="botNameHint" required {...shared} />
+        <legend>{t("sectionEssentials")}</legend>
+
         <Text field="summary" hint="summaryHint" required multiline rows={4} {...shared} />
-        <Select field="botType" options={BOT_TYPE_OPTIONS} required {...shared} />
-        <Checks field="features" options={FEATURE_OPTIONS} toggle={toggle} {...shared} />
-        <Checks
-          field="botLanguages"
-          options={BOT_LANGUAGE_OPTIONS}
-          toggle={toggle}
-          inline
-          {...shared}
-        />
-      </fieldset>
 
-      <fieldset className="reqform__section">
-        <legend>{t("sectionScope")}</legend>
-        <Text field="audience" hint="audienceHint" {...shared} />
-        <Select field="scale" options={SCALE_OPTIONS} {...shared} />
-        <Text field="integrations" hint="integrationsHint" multiline rows={2} {...shared} />
-        <div className="reqform__pair">
-          <Select field="hosting" options={HOSTING_OPTIONS} {...shared} />
-          <Select field="timeline" options={TIMELINE_OPTIONS} required {...shared} />
-        </div>
-        <Select field="budget" options={BUDGET_OPTIONS} {...shared} />
-      </fieldset>
+        {verified ? (
+          <p className="tglogin__verified">
+            <span aria-hidden="true">✓</span> {t("telegramSignedIn")}{" "}
+            <strong dir="ltr">
+              {verified.username ? `@${verified.username}` : verified.firstName}
+            </strong>
+          </p>
+        ) : (
+          <TelegramLogin onVerified={handleVerified} />
+        )}
 
-      <fieldset className="reqform__section">
-        <legend>{t("sectionContact")}</legend>
         <div className="reqform__pair">
           <Text field="contactName" required {...shared} />
-          <Text field="company" {...shared} />
+          <Text field="telegram" placeholder="@username" dir="ltr" {...shared} />
         </div>
         <p className="reqform__hint">{t("contactHint")}</p>
         <div className="reqform__pair">
           <Text field="email" type="email" dir="ltr" {...shared} />
-          <Text field="telegram" placeholder="@username" dir="ltr" {...shared} />
+          <Text field="phone" type="tel" dir="ltr" {...shared} />
         </div>
-        <Text field="phone" type="tel" dir="ltr" {...shared} />
         {errors.contactChannel && (
           <p className="reqform__error" role="alert">
             {errorMessage(t, errors.contactChannel)}
           </p>
         )}
-        <Text field="notes" multiline rows={3} {...shared} />
       </fieldset>
+
+      <div className="reqform__more">
+        <button
+          type="button"
+          className="reqform__disclosure"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+          aria-controls="reqform-details"
+        >
+          <span className={`reqform__chevron${open ? " reqform__chevron--open" : ""}`} aria-hidden="true">
+            ›
+          </span>
+          {open ? t("detailsClose") : t("detailsOpen")}
+          <span className="reqform__optional">{t("detailsOptional")}</span>
+          {prefilledDetails && !open && (
+            <span className="field__badge">{t("prefilled")}</span>
+          )}
+        </button>
+        {!open && <p className="reqform__hint">{t("defaultsNote")}</p>}
+      </div>
+
+      <div id="reqform-details" className="reqform__reveal" hidden={!open}>
+        <fieldset className="reqform__section">
+          <legend>{t("sectionBot")}</legend>
+          <Text field="botName" hint="botNameHint" {...shared} />
+          <Select field="botType" options={BOT_TYPE_OPTIONS} {...shared} />
+          <Checks field="features" options={FEATURE_OPTIONS} toggle={toggle} {...shared} />
+          <Checks
+            field="botLanguages"
+            options={BOT_LANGUAGE_OPTIONS}
+            toggle={toggle}
+            inline
+            {...shared}
+          />
+        </fieldset>
+
+        <fieldset className="reqform__section">
+          <legend>{t("sectionScope")}</legend>
+          <Text field="audience" hint="audienceHint" {...shared} />
+          <Select field="scale" options={SCALE_OPTIONS} {...shared} />
+          <Text field="integrations" hint="integrationsHint" multiline rows={2} {...shared} />
+          <div className="reqform__pair">
+            <Select field="hosting" options={HOSTING_OPTIONS} {...shared} />
+            <Select field="timeline" options={TIMELINE_OPTIONS} {...shared} />
+          </div>
+          <Select field="budget" options={BUDGET_OPTIONS} {...shared} />
+          <Text field="notes" multiline rows={3} {...shared} />
+        </fieldset>
+      </div>
 
       {/* Honeypot: off-screen and skipped by keyboard, so only a bot fills it. */}
       <input
@@ -239,7 +322,6 @@ function Select({ field, t, form, errors, update, prefilled, options, required, 
         aria-describedby={describedBy(field, errors)}
         onChange={(event) => update(field, event.target.value)}
       >
-        <option value="">{t("choosePlaceholder")}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option[lang] ?? option.en}
@@ -263,10 +345,7 @@ function Checks({ field, t, form, errors, prefilled, options, toggle, lang, inli
         {options.map((option) => {
           const checked = selected.includes(option.value);
           return (
-            <label
-              key={option.value}
-              className={`check${checked ? " check--on" : ""}`}
-            >
+            <label key={option.value} className={`check${checked ? " check--on" : ""}`}>
               <input
                 type="checkbox"
                 name={field}

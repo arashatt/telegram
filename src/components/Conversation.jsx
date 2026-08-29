@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n.js";
+import { looksPersian } from "../lang.js";
 import RequirementsForm from "./RequirementsForm.jsx";
 import Receipt from "./Receipt.jsx";
 import { Mark, TypingMark } from "./Brand.jsx";
@@ -48,7 +49,7 @@ async function readStream(response, onToken) {
 }
 
 export default function Conversation() {
-  const { t, lang } = useI18n();
+  const { t, lang, setLang } = useI18n();
 
   const [items, setItems] = useState([]);
   const [input, setInput] = useState("");
@@ -108,6 +109,10 @@ export default function Conversation() {
       );
       lastUserMessage.current = text;
 
+      // The site follows the visitor's language: writing Persian switches it,
+      // once, with no button to press.
+      if (looksPersian(text)) setLang("fa");
+
       const history = retry
         ? transcript()
         : [...transcript(), { role: "user", content: text }];
@@ -135,6 +140,10 @@ export default function Conversation() {
             formSubmitted: submitted,
           }),
         });
+        if (res.status === 429) {
+          setError("rate");
+          return;
+        }
         if (!res.ok || !res.body) throw new Error(`Request failed (${res.status})`);
 
         const reply = await readStream(res, setStreamingText);
@@ -160,7 +169,7 @@ export default function Conversation() {
         setBusy(false);
       }
     },
-    [fetchPrefill, items, lang, submitted, transcript]
+    [fetchPrefill, items, lang, setLang, submitted, transcript]
   );
 
   function handleSubmit(event) {
@@ -186,8 +195,10 @@ export default function Conversation() {
         lang,
         transcript: transcript(),
         website: extras.website ?? "",
+        telegramAuth: extras.telegramAuth ?? null,
       }),
     });
+    if (res.status === 429) throw new Error("rate_limited");
     if (!res.ok) throw new Error(`Submit failed (${res.status})`);
     const data = await res.json();
 
@@ -242,7 +253,7 @@ export default function Conversation() {
 
           {error && (
             <li className="conversation__error" role="alert">
-              <span>{t("networkError")}</span>
+              <span>{error === "rate" ? t("rateLimited") : t("networkError")}</span>
               <button
                 type="button"
                 onClick={() => send(lastUserMessage.current, { retry: true })}

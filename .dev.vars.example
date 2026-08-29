@@ -1,8 +1,8 @@
 # Copy to .dev.vars for `npm run preview`, and set the same names as Worker
 # secrets for production:  npx wrangler secret put TELEGRAM_BOT_TOKEN
 
-# Required — where finished briefs are delivered.
-# Token from @BotFather; the bot must be able to post to the chat below.
+# Required — where finished briefs are delivered, and the key used to verify
+# Telegram Login Widget signatures. Token from @BotFather.
 TELEGRAM_BOT_TOKEN=123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Your user id, a group id (negative, e.g. -1001234567890) or a channel id.
 TELEGRAM_CHAT_ID=-1001234567890
@@ -13,3 +13,10 @@ TELEGRAM_CHAT_ID=-1001234567890
 # Optional — mirror the raw JSON brief to your own endpoint as well.
 # REQUIREMENTS_WEBHOOK_URL=https://example.com/hooks/bot-brief
 # REQUIREMENTS_WEBHOOK_SECRET=sent-as-a-bearer-token
+
+# --- Build-time, NOT a secret ---------------------------------------------
+# The bot's @username, without the @, for the Telegram Login Widget. It is
+# baked into the client bundle at build time, so set it as a *build* variable
+# in Cloudflare (or in .env locally) — not with `wrangler secret put`.
+# Leave it unset and the sign-in button simply does not render.
+# VITE_TELEGRAM_BOT_USERNAME=my_intake_bot
