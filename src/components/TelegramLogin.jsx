@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n.js";
 
-/* Set at build time. Without it the widget is simply not rendered, so an
-   unconfigured deploy shows nothing rather than a button that cannot work. */
-const BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME ?? "";
+/* The bot whose sign-in button this renders. Not a secret — it is visible in
+   the widget markup every visitor loads — so it is a plain default rather
+   than a build variable, and pointing the site at a different bot only means
+   setting VITE_TELEGRAM_BOT_USERNAME. Blank it and no button is rendered,
+   instead of one that cannot work. */
+const BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME ?? "auth_mebot";
 const WIDGET_SRC = "https://telegram.org/js/telegram-widget.js?22";
 
 export default function TelegramLogin({ onVerified }) {

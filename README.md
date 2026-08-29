@@ -98,12 +98,15 @@ same payload back with the brief and the Worker verifies it again from
 scratch. `auth_date` bounds replay to an hour, and the hash comparison is
 constant-time.
 
-To turn it on:
+There is no client secret in this flow. `TELEGRAM_BOT_TOKEN` is the only
+credential involved, and it never leaves the Worker.
 
-1. `/setdomain` in [@BotFather](https://t.me/BotFather) — point the bot at the
-   deployed origin. Without this the widget refuses to render.
-2. Set `VITE_TELEGRAM_BOT_USERNAME` as a **build** variable (it is baked into
-   the client bundle, so it is not a secret and not a `wrangler secret`).
+The widget points at `auth_mebot` by default. The remaining step is
+`/setdomain` in [@BotFather](https://t.me/BotFather), pointing the bot at the
+deployed origin — without it Telegram refuses to render the button. To use a
+different bot, set `VITE_TELEGRAM_BOT_USERNAME` as a **build** variable (it is
+baked into the client bundle, so it is not a secret and not a
+`wrangler secret`); set it empty to hide sign-in entirely.
 
 A verified sign-in fills in the name and username and counts as a way to reach
 the visitor. It never overwrites a name they already typed.
