@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BOT_LANGUAGE_OPTIONS,
   BOT_TYPE_OPTIONS,
@@ -12,6 +12,7 @@ import {
   validateForm,
 } from "../../shared/formSchema.js";
 import { errorMessage, useI18n } from "../i18n.js";
+import { contactFromUser, useSession } from "../session.js";
 import TelegramLogin from "./TelegramLogin.jsx";
 import "./RequirementsForm.css";
 
@@ -33,12 +34,17 @@ const DETAIL_FIELDS = [
 
 export default function RequirementsForm({ prefill = {}, onSubmit }) {
   const { t, lang } = useI18n();
-  const [form, setForm] = useState(() => ({ ...emptyForm(), ...prefill }));
+  const session = useSession();
+  // Read at mount so a visitor who signed in from the header before opening
+  // the form still gets their details filled in.
+  const [form, setForm] = useState(() => {
+    const base = { ...emptyForm(), ...prefill };
+    return { ...base, ...contactFromUser(session?.user, base) };
+  });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [open, setOpen] = useState(false);
-  const [verified, setVerified] = useState(null);
   const [invalidTick, setInvalidTick] = useState(0);
   const honeypot = useRef(null);
   const formRef = useRef(null);
@@ -72,28 +78,21 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
     );
   }
 
-  /* A verified sign-in fills the contact fields it can prove, and satisfies
-     the "reach you somehow" rule on its own. The identity itself travels in
-     the session cookie, so nothing about it is passed through the form.
-
-     Stable by necessity, not habit: TelegramLogin runs effects keyed on this
-     callback, so an unmemoised version would restart them on every keystroke
-     in the form. */
-  const handleVerified = useCallback((user) => {
-    setVerified(user);
-    const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
-    setForm((prev) => ({
-      ...prev,
-      contactName: prev.contactName || name,
-      telegram: user.username ? `@${user.username}` : prev.telegram,
-    }));
-    setErrors((prev) => {
-      const next = { ...prev };
-      delete next.contactChannel;
-      if (name) delete next.contactName;
-      return next;
-    });
-  }, []);
+  /* And subscribe for a sign-in that happens while the form is already open.
+     The listener fires from the sign-in handler, never during render. */
+  useEffect(
+    () =>
+      session?.subscribe((user) => {
+        setForm((prev) => ({ ...prev, ...contactFromUser(user, prev) }));
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.contactChannel;
+          if (contactFromUser(user, {}).contactName) delete next.contactName;
+          return next;
+        });
+      }),
+    [session]
+  );
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -132,16 +131,7 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
 
         <Text field="summary" hint="summaryHint" required multiline rows={4} {...shared} />
 
-        {verified ? (
-          <p className="tglogin__verified">
-            <span aria-hidden="true">✓</span> {t("telegramSignedIn")}{" "}
-            <strong dir="ltr">
-              {verified.username ? `@${verified.username}` : verified.firstName}
-            </strong>
-          </p>
-        ) : (
-          <TelegramLogin onVerified={handleVerified} />
-        )}
+        <TelegramLogin />
 
         <div className="reqform__pair">
           <Text field="contactName" required {...shared} />

@@ -42,6 +42,7 @@ export const translations = {
     telegramLoginHint:
       "Optional. Opens a Telegram window, fills in your name and username, and confirms to us that the account is really yours.",
     telegramSignedIn: "Signed in as",
+    signOut: "Sign out",
     telegramLoginFailed: "That Telegram sign-in couldn't be verified. You can still fill in the form by hand.",
 
     rateLimited: "That's a lot of requests at once — please wait a moment and try again.",
@@ -133,6 +134,7 @@ export const translations = {
     telegramLoginHint:
       "اختیاری. پنجره تلگرام باز می‌شود، نام و نام کاربری شما را پر می‌کند و برای ما تأیید می‌کند که حساب واقعاً متعلق به شماست.",
     telegramSignedIn: "واردشده به‌عنوان",
+    signOut: "خروج",
     telegramLoginFailed: "ورود تلگرام تأیید نشد. می‌توانید فرم را دستی پر کنید.",
 
     rateLimited: "درخواست‌ها خیلی پرتعداد است — لحظه‌ای صبر کنید و دوباره تلاش کنید.",

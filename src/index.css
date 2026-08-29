@@ -202,3 +202,80 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Sign-in lives at the far end of the header — always available, not buried
+   in a form the visitor has to summon first. */
+.page__header-end {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+}
+
+.signin__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: 999px;
+  background: #2aabee;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.signin__button:not(:disabled):hover {
+  background: #1d97d7;
+}
+
+.signin__button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.signin--on {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--color-mist-strong);
+  border-radius: 999px;
+  background: var(--color-panel);
+  font-size: 0.82rem;
+  color: #2aabee;
+}
+
+.signin__who {
+  font-weight: 600;
+  color: var(--color-ink);
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signin__out {
+  border: none;
+  background: none;
+  color: var(--color-ink-soft);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.signin__out:hover {
+  color: var(--color-danger);
+  background: var(--color-mist);
+}
+
+@media (max-width: 640px) {
+  /* Keep the identity, drop the label — the header gets tight fast. */
+  .signin__who {
+    max-width: 10ch;
+  }
+}

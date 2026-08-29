@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Conversation from "./components/Conversation.jsx";
 import DayNight from "./components/DayNight.jsx";
+import SignIn from "./components/SignIn.jsx";
 import { Mark } from "./components/Brand.jsx";
+import { SessionContext, useTelegramSession } from "./session.js";
 import { DEFAULT_LANG, LangContext, dirFor, translations } from "./i18n.js";
 import { prefersPersian } from "./lang.js";
 
@@ -79,9 +81,11 @@ export default function App() {
   }
 
   const context = useMemo(() => ({ lang, setLang: requestLang }), [lang, requestLang]);
+  const session = useTelegramSession();
 
   return (
     <LangContext.Provider value={context}>
+      <SessionContext.Provider value={session}>
       <div className="page" data-phase={phase}>
         <DayNight active={sunset} />
         <header className="page__header">
@@ -96,6 +100,10 @@ export default function App() {
             </span>
             {dict.newChat}
           </button>
+
+          <div className="page__header-end">
+            <SignIn />
+          </div>
         </header>
 
         <main className="page__main">
@@ -106,6 +114,7 @@ export default function App() {
           {notice && <span className="langnotice__pill">{dict.switchedToFa}</span>}
         </div>
       </div>
+      </SessionContext.Provider>
     </LangContext.Provider>
   );
 }
