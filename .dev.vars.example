@@ -1,32 +1,46 @@
-# Copy to .dev.vars for `npm run preview`, and set the same names as Worker
-# secrets for production:  npx wrangler secret put TELEGRAM_BOT_TOKEN
+# LOCAL DEVELOPMENT ONLY. Copy this file to .dev.vars (gitignored) for
+# `npm run preview`.
+#
+# In production these are NOT set from a file and NOT from wrangler.jsonc.
+# They live in the Cloudflare dashboard:
+#
+#   Workers & Pages > your Worker > Settings > Variables and Secrets
+#
+# Add each as type "Secret" (encrypted, write-only) rather than "Text", then
+# redeploy. Confirm the Worker can see them by opening /api/health, which
+# reports which settings are present without revealing any value.
 
-# Required — where finished briefs are delivered. Token from @BotFather.
-# (Sign-in no longer uses this; it uses the OIDC credentials below.)
+# --- Required: where finished briefs are delivered -------------------------
+# Bot token from @BotFather.
 TELEGRAM_BOT_TOKEN=123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-# Your user id, a group id (negative, e.g. -1001234567890) or a channel id.
+# Your user id, or a group/channel id (negative, e.g. -1001234567890).
+# The bot must be a member able to post there.
 TELEGRAM_CHAT_ID=-1001234567890
 
-# Optional — post into one topic of a forum-style group.
-# TELEGRAM_TOPIC_ID=42
-
-# Optional — mirror the raw JSON brief to your own endpoint as well.
-# REQUIREMENTS_WEBHOOK_URL=https://example.com/hooks/bot-brief
-# REQUIREMENTS_WEBHOOK_SECRET=sent-as-a-bearer-token
-
-# --- Telegram sign-in (OpenID Connect) --------------------------------------
-# Register the app with Telegram and set the redirect URI to
+# --- Required for Telegram sign-in (OpenID Connect) ------------------------
+# Register the redirect URI with Telegram first:
 #   https://<your-domain>/api/auth/telegram/callback
-#
-# TELEGRAM_CLIENT_ID is public (it travels in the authorization URL) and is set
-# in wrangler.jsonc under "vars". Only the secret belongs here:
+# Leave this unset and sign-in is simply not offered — no broken button.
 TELEGRAM_CLIENT_SECRET=your-oidc-client-secret
 
-# Optional overrides. The redirect URI is derived from the request origin
-# unless you pin it, which you need to do behind a proxy or custom domain.
+# --- Optional --------------------------------------------------------------
+# Public OIDC client id. Defaults to 8928298590 in code; set this only to
+# point the site at a different Telegram app. Not a secret.
+# TELEGRAM_CLIENT_ID=8928298590
+
+# Pin the redirect URI (needed behind a proxy or custom domain); otherwise it
+# is derived from the request origin.
 # TELEGRAM_REDIRECT_URI=https://example.com/api/auth/telegram/callback
 # TELEGRAM_OIDC_ISSUER=https://oauth.telegram.org
 # TELEGRAM_OIDC_SCOPE=openid
 
-# Leave TELEGRAM_CLIENT_SECRET unset and sign-in is simply not offered — the
-# button does not render and /api/auth/telegram/me reports configured:false.
+# Post briefs into one topic of a forum-style group.
+# TELEGRAM_TOPIC_ID=42
+
+# Mirror the raw JSON brief to your own endpoint as well.
+# REQUIREMENTS_WEBHOOK_URL=https://example.com/hooks/bot-brief
+# REQUIREMENTS_WEBHOOK_SECRET=sent-as-a-bearer-token
+
+# Workers AI models. `npx wrangler ai models` lists what your account can run.
+# CHAT_MODEL=@cf/meta/llama-3.3-70b-instruct-fp8-fast
+# EXTRACT_MODEL=@cf/meta/llama-3.3-70b-instruct-fp8-fast

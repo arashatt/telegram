@@ -28,8 +28,16 @@ import {
 
 const SCOPE = "openid";
 
+/* Public — it travels in the authorization URL, so it is a code default rather
+   than a secret. Override it from the dashboard to point at a different app. */
+const DEFAULT_CLIENT_ID = "8928298590";
+
+export const clientId = (env) => env?.TELEGRAM_CLIENT_ID || DEFAULT_CLIENT_ID;
+
+/* Only the secret gates sign-in: without it the exchange cannot happen, so the
+   button is not offered at all. */
 export function isAuthConfigured(env) {
-  return Boolean(env?.TELEGRAM_CLIENT_ID && env?.TELEGRAM_CLIENT_SECRET);
+  return Boolean(env?.TELEGRAM_CLIENT_SECRET);
 }
 
 function redirectUri(request, env) {
@@ -82,7 +90,7 @@ export async function handleAuthStart(request, env) {
 
   const authUrl = new URL(discovery.authorization_endpoint);
   authUrl.searchParams.set("response_type", "code");
-  authUrl.searchParams.set("client_id", env.TELEGRAM_CLIENT_ID);
+  authUrl.searchParams.set("client_id", clientId(env));
   authUrl.searchParams.set("redirect_uri", redirectUri(request, env));
   authUrl.searchParams.set("scope", env.TELEGRAM_OIDC_SCOPE || SCOPE);
   authUrl.searchParams.set("state", state);
@@ -141,14 +149,14 @@ export async function handleAuthCallback(request, env) {
       code,
       codeVerifier: tx.verifier,
       redirectUri: redirectUri(request, env),
-      clientId: env.TELEGRAM_CLIENT_ID,
+      clientId: clientId(env),
       clientSecret: env.TELEGRAM_CLIENT_SECRET,
     });
 
     const claims = await verifyIdToken(tokens.id_token, {
       jwksUri: discovery.jwks_uri,
       issuer: issuerFor(env),
-      clientId: env.TELEGRAM_CLIENT_ID,
+      clientId: clientId(env),
       nonce: tx.nonce,
     });
 

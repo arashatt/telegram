@@ -5,6 +5,7 @@ import {
   handleAuthLogout,
   handleAuthMe,
   handleAuthStart,
+  isAuthConfigured,
 } from "./auth.js";
 import { clientKey, overLimit } from "./ratelimit.js";
 import { deliverBrief, isTelegramConfigured } from "./telegram.js";
@@ -145,7 +146,8 @@ async function handleRequirements(request, env) {
 
   if (!isTelegramConfigured(env) && !env.REQUIREMENTS_WEBHOOK_URL) {
     console.error(
-      "No delivery channel configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID (see README)."
+      "No delivery channel configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID under " +
+        "Workers & Pages > your Worker > Settings > Variables and Secrets. Check /api/health."
     );
     return json({ error: "delivery_not_configured" }, 503);
   }
@@ -175,6 +177,41 @@ async function handleRequirements(request, env) {
   return json({ ok: true, reference });
 }
 
+/* Reports which runtime settings the Worker can actually see, so a
+   misconfiguration is one request away from being obvious instead of showing
+   up as a failed submission.
+
+   Booleans only — never a value, a length, or a prefix. Knowing that delivery
+   is configured tells an attacker nothing they could not learn by submitting
+   the form. */
+function handleHealth(request, env) {
+  const checks = {
+    ai: Boolean(env.AI),
+    assets: Boolean(env.ASSETS),
+    telegramDelivery: isTelegramConfigured(env),
+    telegramSignIn: isAuthConfigured(env),
+    webhookMirror: Boolean(env.REQUIREMENTS_WEBHOOK_URL),
+    rateLimiters: Boolean(env.CHAT_LIMIT && env.SUBMIT_LIMIT && env.AUTH_LIMIT),
+  };
+
+  // Only the things the site cannot do its job without.
+  const required = ["ai", "assets", "telegramDelivery"];
+  const missing = required.filter((name) => !checks[name]);
+
+  return json(
+    {
+      ok: missing.length === 0,
+      checks,
+      missing,
+      hint: missing.length
+        ? "Set the missing values in Cloudflare > Workers & Pages > your Worker > Settings > Variables and Secrets, then redeploy."
+        : undefined,
+      model: chatModel(env),
+    },
+    missing.length ? 503 : 200
+  );
+}
+
 const POST_ROUTES = {
   "/api/chat/stream": handleChatStream,
   "/api/extract": handleExtract,
@@ -185,6 +222,7 @@ const POST_ROUTES = {
 /* Browser navigations, not fetches: Telegram redirects into /callback, and
    /start redirects out to Telegram. */
 const GET_ROUTES = {
+  "/api/health": handleHealth,
   "/api/auth/telegram/start": handleAuthStart,
   "/api/auth/telegram/callback": handleAuthCallback,
   "/api/auth/telegram/me": handleAuthMe,

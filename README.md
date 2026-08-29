@@ -31,21 +31,49 @@ Briefs go to Telegram via the Bot API (`sendMessage`, HTML parse mode).
 Values are HTML-escaped and long briefs are split across messages at line
 boundaries so a split never lands mid-tag.
 
-Set these as Worker secrets (see `.dev.vars.example`, and copy it to
-`.dev.vars` for local runs):
+## Runtime configuration
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `TELEGRAM_BOT_TOKEN` | yes | Bot token from [@BotFather](https://t.me/BotFather). |
-| `TELEGRAM_CHAT_ID` | yes | Where briefs land: your user id, or a group/channel id such as `-1001234567890`. The bot must be a member able to post. |
-| `TELEGRAM_TOPIC_ID` | no | Post into one topic of a forum-style group. |
-| `REQUIREMENTS_WEBHOOK_URL` | no | Also POST the raw JSON brief here. |
-| `REQUIREMENTS_WEBHOOK_SECRET` | no | Sent as `Authorization: Bearer …` with that webhook. |
+All runtime settings are read from the Worker environment, and in production
+they live in one place:
+
+> **Workers & Pages → your Worker → Settings → Variables and Secrets**
+
+Add each as type **Secret** (encrypted and write-only) rather than Text, then
+redeploy so the new values are picked up.
+
+| Name | Type | Required | Purpose |
+| --- | --- | --- | --- |
+| `TELEGRAM_BOT_TOKEN` | Secret | yes | Delivers briefs. Token from [@BotFather](https://t.me/BotFather). |
+| `TELEGRAM_CHAT_ID` | Secret | yes | Where briefs land — user id, or a group/channel id such as `-1001234567890`. |
+| `TELEGRAM_CLIENT_SECRET` | Secret | for sign-in | OIDC client secret. Unset means no sign-in button. |
+| `TELEGRAM_CLIENT_ID` | Text | no | Public; defaults to `8928298590` in code. |
+| `TELEGRAM_TOPIC_ID` | Text | no | Post into one topic of a forum group. |
+| `TELEGRAM_REDIRECT_URI` | Text | no | Pin the OIDC redirect behind a proxy or custom domain. |
+| `REQUIREMENTS_WEBHOOK_URL` | Text | no | Mirror the raw JSON brief elsewhere. |
+| `CHAT_MODEL` / `EXTRACT_MODEL` | Text | no | Override the Workers AI models. |
+
+`wrangler.jsonc` deliberately declares **no `vars` block**: values there
+overwrite dashboard-set variables on every deploy, which would silently undo a
+change made in the panel.
+
+### Checking it worked
 
 ```sh
-npx wrangler secret put TELEGRAM_BOT_TOKEN
-npx wrangler secret put TELEGRAM_CHAT_ID
+curl https://<your-domain>/api/health
 ```
+
+It reports which settings the Worker can actually see — booleans only, never a
+value — and returns `503` while anything required is missing:
+
+```json
+{ "ok": true,
+  "checks": { "ai": true, "assets": true, "telegramDelivery": true,
+              "telegramSignIn": true, "webhookMirror": false, "rateLimiters": true },
+  "missing": [],
+  "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast" }
+```
+
+For local runs, copy `.dev.vars.example` to `.dev.vars` (gitignored).
 
 With no channel configured, `/api/requirements` returns `503
 delivery_not_configured` and logs why, rather than accepting a brief it
@@ -147,8 +175,8 @@ the popup is blocked, it falls back to a redirect.
 
 To turn it on, register the redirect URI
 `https://<your-domain>/api/auth/telegram/callback` with Telegram, then set
-`TELEGRAM_CLIENT_SECRET` as a Worker secret. `TELEGRAM_CLIENT_ID` is public and
-lives in `wrangler.jsonc`. Without the secret, no sign-in button is rendered.
+`TELEGRAM_CLIENT_SECRET` in the dashboard (see **Runtime configuration**).
+Without it, no sign-in button is rendered.
 
 A verified sign-in fills in the name and username and counts as a way to reach
 the visitor. It never overwrites a name they already typed.
@@ -248,6 +276,7 @@ and add an `og.png` to `public/`.
 | `POST /api/chat/stream` | `{ messages, lang, formSubmitted }` | SSE token stream |
 | `POST /api/extract` | `{ text, lang }` | `{ prefill }` — `{}` on any failure |
 | `POST /api/requirements` | `{ form, lang, transcript, website }` | `{ ok, reference }` |
+| `GET /api/health` | — | `{ ok, checks, missing }` — config state, no values |
 | `GET /api/auth/telegram/start` | — | `302` to Telegram |
 | `GET /api/auth/telegram/callback` | `?code&state` | popup-closing page, sets session |
 | `GET /api/auth/telegram/me` | — | `{ user, configured }` |
