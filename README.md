@@ -169,7 +169,10 @@ never asserts an identity: `/api/requirements` reads the session cookie itself
 rather than trusting anything in the request body. Session and transaction
 cookies are domain-separated, so neither can be replayed as the other.
 
-Sign-in runs in a **popup**, not a full-page redirect — the conversation and a
+The session is page-wide, held in `src/session.js`: the header offers sign-in
+from the moment someone lands, the requirements form consumes the same session,
+and signing in from either place updates both. Signing out is offered in the
+header too. Sign-in runs in a **popup**, not a full-page redirect — the conversation and a
 half-filled form live only in memory, and navigating away would lose them. If
 the popup is blocked, it falls back to a redirect.
 
