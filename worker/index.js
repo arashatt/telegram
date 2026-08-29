@@ -185,9 +185,15 @@ async function handleRequirements(request, env) {
    is configured tells an attacker nothing they could not learn by submitting
    the form. */
 function handleHealth(request, env) {
+  /* Reported one variable at a time. Delivery needs TELEGRAM_BOT_TOKEN and
+     TELEGRAM_CHAT_ID together, and a single combined boolean cannot say which
+     of the two is absent — which is exactly the question when it reads false. */
   const checks = {
     ai: Boolean(env.AI),
     assets: Boolean(env.ASSETS),
+    TELEGRAM_BOT_TOKEN: Boolean(env.TELEGRAM_BOT_TOKEN),
+    TELEGRAM_CHAT_ID: Boolean(env.TELEGRAM_CHAT_ID),
+    TELEGRAM_CLIENT_SECRET: Boolean(env.TELEGRAM_CLIENT_SECRET),
     telegramDelivery: isTelegramConfigured(env),
     telegramSignIn: isAuthConfigured(env),
     webhookMirror: Boolean(env.REQUIREMENTS_WEBHOOK_URL),
@@ -195,16 +201,33 @@ function handleHealth(request, env) {
   };
 
   // Only the things the site cannot do its job without.
-  const required = ["ai", "assets", "telegramDelivery"];
+  const required = ["ai", "assets", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"];
   const missing = required.filter((name) => !checks[name]);
+
+  /* A chat id that is present but malformed fails at Telegram rather than
+     here, so flag the shapes that are almost always a mistake. */
+  const warnings = [];
+  const chatId = env.TELEGRAM_CHAT_ID;
+  if (chatId && !/^-?\d+$/.test(String(chatId).trim())) {
+    warnings.push("TELEGRAM_CHAT_ID is not a plain number — a group id looks like -1001234567890");
+  }
+  if (chatId && String(chatId) !== String(chatId).trim()) {
+    warnings.push("TELEGRAM_CHAT_ID has leading or trailing whitespace");
+  }
+  const token = env.TELEGRAM_BOT_TOKEN;
+  if (token && !/^\d+:[A-Za-z0-9_-]{20,}$/.test(String(token).trim())) {
+    warnings.push("TELEGRAM_BOT_TOKEN does not look like a BotFather token (123456789:AA...)");
+  }
 
   return json(
     {
       ok: missing.length === 0,
       checks,
       missing,
+      warnings: warnings.length ? warnings : undefined,
       hint: missing.length
-        ? "Set the missing values in Cloudflare > Workers & Pages > your Worker > Settings > Variables and Secrets, then redeploy."
+        ? `Set ${missing.join(" and ")} in Cloudflare > Workers & Pages > your Worker > ` +
+          "Settings > Variables and Secrets, then redeploy. Names are case-sensitive."
         : undefined,
       model: chatModel(env),
     },
