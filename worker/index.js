@@ -1,7 +1,13 @@
 import { validateForm } from "../shared/formSchema.js";
+import {
+  currentUser,
+  handleAuthCallback,
+  handleAuthLogout,
+  handleAuthMe,
+  handleAuthStart,
+} from "./auth.js";
 import { clientKey, overLimit } from "./ratelimit.js";
 import { deliverBrief, isTelegramConfigured } from "./telegram.js";
-import { verifyTelegramAuth } from "./telegramAuth.js";
 import {
   chatSystemPrompt,
   extractionMessages,
@@ -105,21 +111,6 @@ async function handleExtract(request, env) {
   }
 }
 
-/* The widget's payload is signed by Telegram; the bot token needed to check
-   that signature is a Worker secret, so verification can only happen here. */
-async function handleTelegramVerify(request, env) {
-  if (await overLimit(env.AUTH_LIMIT, clientKey(request))) return tooManyRequests();
-
-  const { body, tooLarge, invalid } = await readBody(request);
-  if (tooLarge) return json({ error: "payload_too_large" }, 413);
-  if (invalid) return json({ error: "invalid_json" }, 400);
-
-  const user = await verifyTelegramAuth(env.TELEGRAM_BOT_TOKEN, body?.auth);
-  if (!user) return json({ error: "verification_failed" }, 401);
-
-  return json({ ok: true, user });
-}
-
 async function handleRequirements(request, env) {
   if (await overLimit(env.SUBMIT_LIMIT, clientKey(request))) return tooManyRequests();
 
@@ -145,12 +136,9 @@ async function handleRequirements(request, env) {
     return json({ error: "delivery_not_configured" }, 503);
   }
 
-  // Re-verified from scratch rather than trusted from the earlier call: the
-  // signature is self-contained, so the browser cannot claim an identity it
-  // did not actually sign in with.
-  const verified = body?.telegramAuth
-    ? await verifyTelegramAuth(env.TELEGRAM_BOT_TOKEN, body.telegramAuth)
-    : null;
+  // Read from the signed session cookie, never from the request body: the
+  // browser cannot claim an identity it did not actually sign in with.
+  const verified = await currentUser(request, env);
 
   const reference =
     "REQ-" + crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
@@ -173,21 +161,41 @@ async function handleRequirements(request, env) {
   return json({ ok: true, reference });
 }
 
-const ROUTES = {
+const POST_ROUTES = {
   "/api/chat/stream": handleChatStream,
   "/api/extract": handleExtract,
   "/api/requirements": handleRequirements,
-  "/api/telegram/verify": handleTelegramVerify,
+  "/api/auth/telegram/logout": handleAuthLogout,
+};
+
+/* Browser navigations, not fetches: Telegram redirects into /callback, and
+   /start redirects out to Telegram. */
+const GET_ROUTES = {
+  "/api/auth/telegram/start": handleAuthStart,
+  "/api/auth/telegram/callback": handleAuthCallback,
+  "/api/auth/telegram/me": handleAuthMe,
 };
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const handler = ROUTES[url.pathname];
+    const getHandler = GET_ROUTES[url.pathname];
+    const postHandler = POST_ROUTES[url.pathname];
 
-    if (handler) {
+    if (getHandler || postHandler) {
       if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
-      if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+      const handler =
+        request.method === "GET" || request.method === "HEAD" ? getHandler : postHandler;
+      if (!handler) return json({ error: "method_not_allowed" }, 405);
+
+      // Auth endpoints reach outward (discovery, JWKS, token exchange), so
+      // they are limited too.
+      if (url.pathname.startsWith("/api/auth/telegram/") && url.pathname.endsWith("/me") === false) {
+        if (await overLimit(env.AUTH_LIMIT, clientKey(request))) {
+          return json({ error: "rate_limited" }, 429);
+        }
+      }
 
       try {
         return await handler(request, env);

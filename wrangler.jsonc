@@ -11,6 +11,11 @@
   "ai": {
     "binding": "AI"
   },
+  // Public OIDC client id — it travels in the authorization URL, so it is a
+  // plain var. TELEGRAM_CLIENT_SECRET is a secret and is never set here.
+  "vars": {
+    "TELEGRAM_CLIENT_ID": "8928298590"
+  },
   // Per-IP caps. Chat and extraction each cost a Workers AI call, so they are
   // the expensive endpoints to protect; submissions are rarer and stricter.
   // "period" only accepts 10 or 60.

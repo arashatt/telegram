@@ -1,75 +1,116 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n.js";
 
-/* The bot whose sign-in button this renders. Not a secret — it is visible in
-   the widget markup every visitor loads — so it is a plain default rather
-   than a build variable, and pointing the site at a different bot only means
-   setting VITE_TELEGRAM_BOT_USERNAME. Blank it and no button is rendered,
-   instead of one that cannot work. */
-const BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME ?? "auth_mebot";
-const WIDGET_SRC = "https://telegram.org/js/telegram-widget.js?22";
+const POPUP = { width: 520, height: 680 };
+const POLL_MS = 400;
 
+/* Sign-in runs in a popup rather than a full-page redirect: the conversation
+   and half-filled form live only in memory, and navigating away would lose
+   them. The popup posts back to this window and closes itself. */
 export default function TelegramLogin({ onVerified }) {
-  const { t, lang } = useI18n();
-  const holder = useRef(null);
+  const { t } = useI18n();
+  const [available, setAvailable] = useState(false);
+  const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  const popupRef = useRef(null);
+  const pollRef = useRef(null);
 
-  /* The payload Telegram hands back is signed but unverified here — only the
-     Worker holds the bot token, so it decides whether to believe it. */
-  const handleAuth = useCallback(
-    async (payload) => {
-      setFailed(false);
-      try {
-        const res = await fetch("/api/telegram/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ auth: payload }),
-        });
-        if (!res.ok) throw new Error(`Verification failed (${res.status})`);
-        const data = await res.json();
-        if (!data?.user) throw new Error("No user in response");
-        onVerified(data.user, payload);
-      } catch {
-        setFailed(true);
-      }
-    },
-    [onVerified]
-  );
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
+  }, []);
+
+  /* Pure I/O, no state of its own: one call answers both whether sign-in is
+     configured at all and whether this visitor already has a session cookie.
+     Callers decide what to do with the answer. */
+  const fetchSession = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/telegram/me", { credentials: "same-origin" });
+      return res.ok ? await res.json() : null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
-    const node = holder.current;
-    if (!BOT_USERNAME || !node) return undefined;
-
-    // The widget invokes a global by name, so publish one just for this mount
-    // and take it away again on cleanup.
-    const callback = `onTelegramAuth_${Math.random().toString(36).slice(2, 10)}`;
-    window[callback] = handleAuth;
-
-    const script = document.createElement("script");
-    script.src = WIDGET_SRC;
-    script.async = true;
-    script.setAttribute("data-telegram-login", BOT_USERNAME);
-    script.setAttribute("data-size", "medium");
-    script.setAttribute("data-userpic", "false");
-    script.setAttribute("data-radius", "8");
-    script.setAttribute("data-request-access", "write");
-    script.setAttribute("data-onauth", `${callback}(user)`);
-    script.setAttribute("data-lang", lang);
-    node.appendChild(script);
-
+    let live = true;
+    fetchSession().then((data) => {
+      if (!live || !data) return;
+      setAvailable(Boolean(data.configured));
+      if (data.user) onVerified(data.user);
+    });
     return () => {
-      delete window[callback];
-      node.replaceChildren();
+      live = false;
+      stopPolling();
     };
-  }, [handleAuth, lang]);
+  }, [fetchSession, onVerified, stopPolling]);
 
-  if (!BOT_USERNAME) return null;
+  useEffect(() => {
+    async function onMessage(event) {
+      // Only this origin can tell us a sign-in happened.
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "telegram-auth") return;
+
+      stopPolling();
+      setPending(false);
+      if (!event.data.ok) {
+        setFailed(true);
+        return;
+      }
+      const data = await fetchSession();
+      if (data?.user) onVerified(data.user);
+      else setFailed(true);
+    }
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [fetchSession, onVerified, stopPolling]);
+
+  function startSignIn() {
+    setFailed(false);
+    setPending(true);
+
+    const left = window.screenX + Math.max(0, (window.outerWidth - POPUP.width) / 2);
+    const top = window.screenY + Math.max(0, (window.outerHeight - POPUP.height) / 2);
+    const popup = window.open(
+      "/api/auth/telegram/start",
+      "telegram-signin",
+      `width=${POPUP.width},height=${POPUP.height},left=${left},top=${top}`
+    );
+
+    if (!popup) {
+      // Popup blocked — fall back to a full redirect rather than dead-ending.
+      window.location.href = "/api/auth/telegram/start";
+      return;
+    }
+
+    popupRef.current = popup;
+    stopPolling();
+    // A visitor who closes the window without finishing sends no message, so
+    // the button has to notice on its own.
+    pollRef.current = setInterval(() => {
+      if (popupRef.current?.closed) {
+        stopPolling();
+        setPending(false);
+      }
+    }, POLL_MS);
+  }
+
+  if (!available) return null;
 
   return (
     <div className="tglogin">
       <div className="tglogin__row">
         <span className="tglogin__title">{t("telegramLoginTitle")}</span>
-        <div ref={holder} className="tglogin__widget" />
+        <button
+          type="button"
+          className="tglogin__button"
+          onClick={startSignIn}
+          disabled={pending}
+        >
+          <TelegramGlyph />
+          {pending ? t("telegramLoginPending") : t("telegramLoginAction")}
+        </button>
       </div>
       <p className="field__hint">{t("telegramLoginHint")}</p>
       {failed && (
@@ -78,5 +119,13 @@ export default function TelegramLogin({ onVerified }) {
         </p>
       )}
     </div>
+  );
+}
+
+function TelegramGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
+    </svg>
   );
 }

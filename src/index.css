@@ -81,7 +81,7 @@ body {
    layout and can flash a scrollbar, which is the opposite of seamless. */
 .page__header,
 .page__main {
-  transition: opacity 220ms ease;
+  transition: opacity 320ms ease;
 }
 
 .page[data-phase="out"] .page__header,

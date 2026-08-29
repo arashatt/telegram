@@ -339,11 +339,29 @@ select.field__control {
   font-weight: 600;
 }
 
-/* The widget renders an iframe of its own; keep it from stretching the row. */
-.tglogin__widget {
-  min-height: 30px;
-  display: flex;
+.tglogin__button {
+  display: inline-flex;
   align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: #2aabee;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.tglogin__button:not(:disabled):hover {
+  background: #1d97d7;
+}
+
+.tglogin__button:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 
 .tglogin__verified {

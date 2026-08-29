@@ -40,7 +40,6 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
   const [open, setOpen] = useState(false);
   const [verified, setVerified] = useState(null);
   const [invalidTick, setInvalidTick] = useState(0);
-  const telegramAuth = useRef(null);
   const honeypot = useRef(null);
   const formRef = useRef(null);
 
@@ -74,13 +73,13 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
   }
 
   /* A verified sign-in fills the contact fields it can prove, and satisfies
-     the "reach you somehow" rule on its own.
+     the "reach you somehow" rule on its own. The identity itself travels in
+     the session cookie, so nothing about it is passed through the form.
 
-     Stable by necessity, not habit: TelegramLogin re-mounts its script when
-     this changes, so an unmemoised version would tear the widget down and
-     rebuild it on every keystroke in the form. */
-  const handleVerified = useCallback((user, payload) => {
-    telegramAuth.current = payload;
+     Stable by necessity, not habit: TelegramLogin runs effects keyed on this
+     callback, so an unmemoised version would restart them on every keystroke
+     in the form. */
+  const handleVerified = useCallback((user) => {
     setVerified(user);
     const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
     setForm((prev) => ({
@@ -112,10 +111,7 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await onSubmit(form, {
-        website: honeypot.current?.value ?? "",
-        telegramAuth: telegramAuth.current,
-      });
+      await onSubmit(form, { website: honeypot.current?.value ?? "" });
     } catch (err) {
       setSubmitError(err?.message === "rate_limited" ? "rateLimited" : "submitFailed");
       setSubmitting(false);

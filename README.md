@@ -59,11 +59,15 @@ Persian-script letters against Latin ones and needs at least three of them to
 outweigh the Latin, so "I want a ربات" does not flip the page and a stray
 emoji never does.
 
-The swap is a crossfade — the language changes at the midpoint, while the
-page is invisible, so the RTL/LTR reflow is never seen. Only opacity animates;
-a transform would shift layout and can flash a scrollbar. A short notice says
-what happened, since a page that silently changes direction is disorienting,
-and `role="status"` reads it to a screen reader.
+The swap plays as a sunset: the sky deepens, the sun sets, stars come out and
+the moon rises, then it lifts back to daylight in the new language. The change
+happens at peak night — 700ms into a 1400ms timeline — while the page is hidden
+behind the overlay, so the RTL/LTR reflow is never seen. The page's own fade is
+shorter and uses opacity only; a transform would shift layout and can flash a
+scrollbar. Under `prefers-reduced-motion` the celestial parts are dropped for a
+brief neutral veil, since the global animation reset would otherwise freeze the
+overlay mid-frame. A short notice says what happened, and `role="status"` reads
+it to a screen reader.
 
 The switch is one-way by design: nothing is persisted, so every visit starts
 in English, and there is no control to go back mid-session.
@@ -89,24 +93,35 @@ field, the disclosure opens automatically rather than hiding it.
 
 ## Telegram sign-in
 
-Optional, and off unless configured. The Login Widget returns a payload signed
-with HMAC-SHA256 keyed by SHA-256 of the bot token; since only the Worker has
-that token, `/api/telegram/verify` is what decides whether to believe it.
+Optional, and off unless configured. Telegram runs a standard OpenID Connect
+provider at `oauth.telegram.org`; this uses the Authorization Code flow with
+PKCE. The older Login Widget — an iframe posting a payload signed with the bot
+token — is deprecated and is not used here.
 
-The signature is self-contained, so there is no session: the browser hands the
-same payload back with the brief and the Worker verifies it again from
-scratch. `auth_date` bounds replay to an hour, and the hash comparison is
-constant-time.
+The whole exchange happens in the Worker:
 
-There is no client secret in this flow. `TELEGRAM_BOT_TOKEN` is the only
-credential involved, and it never leaves the Worker.
+1. `GET /api/auth/telegram/start` mints `state`, `nonce` and a PKCE verifier,
+   seals them in a short-lived signed cookie, and redirects to Telegram.
+2. Telegram redirects back to `/api/auth/telegram/callback`, which checks
+   `state`, exchanges the code (with the client secret and the PKCE verifier),
+   then verifies the `id_token` against Telegram's JWKS — signature, issuer,
+   audience, `azp`, expiry and `nonce`.
+3. The verified identity is stored in an HMAC-signed, HttpOnly session cookie.
+   `GET /api/auth/telegram/me` reports who is signed in.
 
-The widget points at `auth_mebot` by default. The remaining step is
-`/setdomain` in [@BotFather](https://t.me/BotFather), pointing the bot at the
-deployed origin — without it Telegram refuses to render the button. To use a
-different bot, set `VITE_TELEGRAM_BOT_USERNAME` as a **build** variable (it is
-baked into the client bundle, so it is not a secret and not a
-`wrangler secret`); set it empty to hide sign-in entirely.
+The client secret and the `id_token` never reach the browser, and the browser
+never asserts an identity: `/api/requirements` reads the session cookie itself
+rather than trusting anything in the request body. Session and transaction
+cookies are domain-separated, so neither can be replayed as the other.
+
+Sign-in runs in a **popup**, not a full-page redirect — the conversation and a
+half-filled form live only in memory, and navigating away would lose them. If
+the popup is blocked, it falls back to a redirect.
+
+To turn it on, register the redirect URI
+`https://<your-domain>/api/auth/telegram/callback` with Telegram, then set
+`TELEGRAM_CLIENT_SECRET` as a Worker secret. `TELEGRAM_CLIENT_ID` is public and
+lives in `wrangler.jsonc`. Without the secret, no sign-in button is rendered.
 
 A verified sign-in fills in the name and username and counts as a way to reach
 the visitor. It never overwrites a name they already typed.
@@ -131,7 +146,7 @@ Cloudflare's rate-limiting bindings, configured in `wrangler.jsonc`:
 | --- | --- | --- |
 | `CHAT_LIMIT` | `/api/chat/stream`, `/api/extract` | 12 / minute |
 | `SUBMIT_LIMIT` | `/api/requirements` | 4 / minute |
-| `AUTH_LIMIT` | `/api/telegram/verify` | 8 / minute |
+| `AUTH_LIMIT` | `/api/auth/telegram/start`, `/callback` | 8 / minute |
 
 The check runs before any AI call or delivery, so a throttled request costs
 nothing. Over the cap returns `429` with `Retry-After`, which the UI shows as
@@ -147,17 +162,21 @@ re-validated server-side, and a honeypot field.
 shared/formSchema.js   fields, option values + labels, validation (client & Worker)
 src/i18n.js            UI strings, language context
 src/lang.js            Persian-script detection
+src/daynight.css       the sunset transition
 src/App.jsx            page shell, language switch
 src/components/
   Conversation.jsx     stream, SSE reading, orchestration
   RequirementsForm.jsx the inline form
   Receipt.jsx          read-only summary after submitting
-  TelegramLogin.jsx    login widget, verified server-side
+  TelegramLogin.jsx    popup sign-in, verified server-side
+  DayNight.jsx         sunset overlay for the language change
 worker/
   index.js             routes
   intake.js            prompts, JSON extraction, sanitising
   telegram.js          brief rendering + delivery
-  telegramAuth.js      login-widget signature verification
+  auth.js              OIDC start / callback / me
+  oidc.js              discovery, PKCE, JWKS, id_token verification
+  session.js           HMAC-signed cookies
   ratelimit.js         per-IP caps
 ```
 
@@ -171,14 +190,17 @@ and the Worker cannot disagree about what a valid brief is.
 | --- | --- | --- |
 | `POST /api/chat/stream` | `{ messages, lang, formSubmitted }` | SSE token stream |
 | `POST /api/extract` | `{ text, lang }` | `{ prefill }` — `{}` on any failure |
-| `POST /api/requirements` | `{ form, lang, transcript, website, telegramAuth }` | `{ ok, reference }` |
-| `POST /api/telegram/verify` | `{ auth }` | `{ ok, user }`, or `401` |
+| `POST /api/requirements` | `{ form, lang, transcript, website }` | `{ ok, reference }` |
+| `GET /api/auth/telegram/start` | — | `302` to Telegram |
+| `GET /api/auth/telegram/callback` | `?code&state` | popup-closing page, sets session |
+| `GET /api/auth/telegram/me` | — | `{ user, configured }` |
+| `POST /api/auth/telegram/logout` | — | `{ ok }` |
 
 Untrusted input is treated as such: bodies are capped at 64 KB, every field
 is coerced onto the schema before use (so neither a crafted request nor a
 hallucinated extraction can introduce an unexpected value), the brief is
-re-validated server-side, `telegramAuth` is re-verified rather than trusted
-from the earlier call, and `website` is a honeypot — a real visitor never
+re-validated server-side, identity is read from the signed session cookie
+rather than the request body, and `website` is a honeypot — a real visitor never
 sees it, so a filled one is accepted and dropped.
 
 ## Development
