@@ -53,8 +53,15 @@ cannot deliver.
 
 ## Languages
 
-The site starts in English and there is no language button. When a visitor
-writes Persian, it switches to Persian and stays there: `src/lang.js` counts
+The site starts in English and there is no language button.
+
+A visitor whose **browser** asks for Persian (`navigator.languages` contains
+`fa`, `fa-IR`, `fa-AF`) gets Persian from the first paint, with no animation —
+nothing is changing for them. Note this is the browser's *language preference*,
+not the keyboard layout: a web page cannot read keyboard layout, by design.
+
+For everyone else the site stays English until they write Persian, at which
+point it switches and stays there: `src/lang.js` counts
 Persian-script letters against Latin ones and needs at least three of them to
 outweigh the Latin, so "I want a ربات" does not flip the page and a stray
 emoji never does.
@@ -70,7 +77,13 @@ overlay mid-frame. A short notice says what happened, and `role="status"` reads
 it to a screen reader.
 
 The switch is one-way by design: nothing is persisted, so every visit starts
-in English, and there is no control to go back mid-session.
+from the browser's own preference, and there is no control to go back
+mid-session.
+
+**The served HTML is always English** — `<html lang="en">` and an English
+`<title>`. Persian only ever appears after the bundle runs and only for a
+visitor who wants it, so a non-Persian visitor never sees Persian in the tab,
+on load or on refresh.
 
 Layout is RTL-safe through CSS logical properties, and message bubbles, form
 fields and receipt values use `dir="auto"` so a Persian visitor typing English
@@ -78,10 +91,24 @@ still reads correctly. Option labels carry both languages in
 `shared/formSchema.js` because the Worker renders them into the Telegram
 message too.
 
+## New chat
+
+The header carries a **New chat** control at the start — top-left in English,
+top-right in RTL, which is the same corner to a Persian reader. It remounts the
+conversation from scratch, and asks first if there is a conversation in
+progress worth losing.
+
 ## Keeping the form small
 
-Only three things are ever required: what the bot should do (prefilled from
-the opening message), a name, and one way to reply. Every other field has a
+Only three things are ever required: what the bot should do, a name, and one
+way to reply.
+
+**"What should the bot do?" is never empty.** The opening message goes to
+`/api/extract`, which asks the model to rewrite it as a clear, concrete
+requirement in the visitor's own voice — tidying wording and typos, never
+inventing a feature, budget or deadline. If extraction fails or comes back
+too thin, the field falls back to their raw message, so the field is populated
+either way. Every other field has a
 working default — category, scale, hosting, timeline and budget all start on
 "not sure" or "flexible" rather than empty — and they live behind an "Add more
 detail" disclosure that is collapsed by default. A visitor who opens the form,
@@ -183,6 +210,36 @@ worker/
 `shared/formSchema.js` is imported by both sides on purpose: the field list,
 the allowed option values and the validation rules exist once, so the form
 and the Worker cannot disagree about what a valid brief is.
+
+## Choosing a model
+
+`CHAT_MODEL` and `EXTRACT_MODEL` are vars, not constants, because the Workers
+AI catalogue changes faster than this repo. The default is
+`@cf/meta/llama-3.3-70b-instruct-fp8-fast`.
+
+```sh
+npx wrangler ai models        # what your account can actually run
+```
+
+Then set either name in `wrangler.jsonc` under `vars`. They are split because
+extraction wants strict JSON and instruction-following, which is a different
+strength from conversational replies — it is reasonable to point them at
+different models.
+
+## SEO
+
+The page ships static, crawlable content inside `#root` that React replaces on
+load: an `h1`, what gets built, and how it works. Crawlers that do not execute
+JavaScript still get a real description of the page, and it says the same thing
+the rendered app does.
+
+Also in place: a descriptive `<title>` and meta description, canonical URL,
+Open Graph and Twitter tags, two JSON-LD blocks (`ProfessionalService` and
+`FAQPage`), plus `robots.txt`, `sitemap.xml` and `llms.txt`.
+
+**Before launch, replace `example.com`** in `index.html` (canonical, `og:url`,
+JSON-LD), `public/robots.txt` and `public/sitemap.xml` with the real domain,
+and add an `og.png` to `public/`.
 
 ## Endpoints
 

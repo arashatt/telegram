@@ -1,0 +1,25 @@
+# Custom Telegram Bot Development
+
+> Describe the Telegram bot you want and get a scoped quote. A short
+> conversation with an assistant, a two-minute requirements form, and the brief
+> goes straight to the team that builds it.
+
+## What is built here
+
+- Shop and e-commerce bots with in-chat payments
+- Customer support bots, with or without AI replies
+- Booking, reservation and appointment bots
+- Notification, alert and scheduled-message bots
+- Group and channel moderation tools
+- Telegram Mini Apps and Web Apps
+- Admin dashboards, databases and third-party API integrations
+
+## How to get a quote
+
+Open the site, describe the bot in your own words, and the form is filled in
+from what you wrote. Sign-in with Telegram is optional. English and Persian.
+
+## Notes
+
+- No pricing is published; scope decides it, and a quote comes back per brief.
+- Contact happens through the form on the site.

@@ -9,7 +9,7 @@ export function dirFor(lang) {
 
 export const translations = {
   en: {
-    siteTitle: "Telegram bot intake",
+    siteTitle: "Custom Telegram Bot Development — Get a Quote",
     tagline: "Telegram bots, built to your spec",
     greeting:
       "Hi — I'm the intake assistant here. Tell me about the Telegram bot you want built: what should it do, and who is it for?",
@@ -23,6 +23,7 @@ export const translations = {
     networkError:
       "Couldn't reach the assistant. Check your connection and try again.",
     retry: "Try again",
+    newChat: "New chat",
     startOver: "Start over",
     startOverConfirm: "Clear this conversation and start a new one?",
 
@@ -100,7 +101,7 @@ export const translations = {
   },
 
   fa: {
-    siteTitle: "ثبت سفارش ربات تلگرام",
+    siteTitle: "ساخت ربات اختصاصی تلگرام — دریافت قیمت",
     tagline: "ربات تلگرام، دقیقاً مطابق نیاز شما",
     greeting:
       "سلام! من دستیار ثبت سفارش هستم. درباره رباتی که می‌خواهید بسازیم بگویید: قرار است چه کاری انجام دهد و مخاطبش چه کسی است؟",
@@ -113,6 +114,7 @@ export const translations = {
     thinking: "در حال فکر کردن…",
     networkError: "ارتباط با دستیار برقرار نشد. اتصال خود را بررسی و دوباره تلاش کنید.",
     retry: "تلاش دوباره",
+    newChat: "گفت‌وگوی جدید",
     startOver: "شروع دوباره",
     startOverConfirm: "این گفت‌وگو پاک شود و از نو شروع کنیم؟",
 

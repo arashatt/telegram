@@ -3,6 +3,7 @@ import Conversation from "./components/Conversation.jsx";
 import DayNight from "./components/DayNight.jsx";
 import { Mark } from "./components/Brand.jsx";
 import { DEFAULT_LANG, LangContext, dirFor, translations } from "./i18n.js";
+import { prefersPersian } from "./lang.js";
 
 /* The sunset runs for DAYNIGHT_MS and is darkest at its midpoint, which is
    exactly when the language swaps — the RTL/LTR reflow happens behind the
@@ -13,14 +14,24 @@ const SWAP_MS = DAYNIGHT_MS / 2;
 const FADE_MS = 320;
 const NOTICE_MS = 3600;
 
+/* A visitor whose browser asks for Persian gets Persian from the first paint —
+   no sunset, since nothing is changing for them. Everyone else starts in
+   English, and the static HTML is English too so no Persian ever flashes in
+   the tab title. */
+const initialLang = () => (prefersPersian() ? "fa" : DEFAULT_LANG);
+
 export default function App() {
-  const [lang, setLang] = useState(DEFAULT_LANG);
+  const [lang, setLang] = useState(initialLang);
   const [phase, setPhase] = useState("idle");
   const [sunset, setSunset] = useState(false);
   const [notice, setNotice] = useState(false);
-  const langRef = useRef(DEFAULT_LANG);
+  const [chatKey, setChatKey] = useState(0);
+  const [dirty, setDirty] = useState(false);
+  const langRef = useRef(null);
   const timers = useRef([]);
   const dict = translations[lang];
+
+  if (langRef.current === null) langRef.current = lang;
 
   useEffect(() => {
     const pending = timers.current;
@@ -60,6 +71,13 @@ export default function App() {
     document.title = dict.siteTitle;
   }, [lang, dict]);
 
+  function startNewChat() {
+    // Only interrupt when there is something to lose.
+    if (dirty && !window.confirm(dict.startOverConfirm)) return;
+    setDirty(false);
+    setChatKey((key) => key + 1);
+  }
+
   const context = useMemo(() => ({ lang, setLang: requestLang }), [lang, requestLang]);
 
   return (
@@ -71,10 +89,17 @@ export default function App() {
             <Mark size={28} filled />
             <span className="brand__title">{dict.tagline}</span>
           </div>
+
+          <button type="button" className="newchat" onClick={startNewChat}>
+            <span className="newchat__plus" aria-hidden="true">
+              +
+            </span>
+            {dict.newChat}
+          </button>
         </header>
 
         <main className="page__main">
-          <Conversation />
+          <Conversation key={chatKey} onActivity={setDirty} />
         </main>
 
         <div className="langnotice" role="status" aria-live="polite">

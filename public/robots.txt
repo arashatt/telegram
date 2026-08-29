@@ -1,0 +1,8 @@
+# Replace example.com with your real domain before launch.
+User-agent: *
+Allow: /
+
+# Nothing useful for a crawler behind the API, and some of it costs money to serve.
+Disallow: /api/
+
+Sitemap: https://example.com/sitemap.xml

@@ -1,4 +1,4 @@
-import { validateForm } from "../shared/formSchema.js";
+import { LIMITS, SUMMARY_MIN, validateForm } from "../shared/formSchema.js";
 import {
   currentUser,
   handleAuthCallback,
@@ -18,7 +18,14 @@ import {
   sanitizeTranscript,
 } from "./intake.js";
 
-const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+/* Overridable without a code change, because the Workers AI catalogue moves
+   faster than this repo does. Run `npx wrangler ai models` to see what the
+   account actually has, then set CHAT_MODEL / EXTRACT_MODEL in wrangler.jsonc
+   vars. Extraction is split out because it wants strict JSON, which is a
+   different strength from conversational replies. */
+const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
+const extractModel = (env) => env.EXTRACT_MODEL || env.CHAT_MODEL || DEFAULT_MODEL;
 const MAX_BODY_BYTES = 64 * 1024;
 
 const CORS = {
@@ -64,7 +71,7 @@ async function handleChatStream(request, env) {
   const messages = sanitizeTranscript(body?.messages);
   if (messages.length === 0) return json({ error: "no_messages" }, 400);
 
-  const stream = await env.AI.run(MODEL, {
+  const stream = await env.AI.run(chatModel(env), {
     messages: [
       { role: "system", content: chatSystemPrompt(lang, Boolean(body?.formSubmitted)) },
       ...messages,
@@ -84,9 +91,16 @@ async function handleChatStream(request, env) {
   });
 }
 
-/* Best-effort: a failed extraction just means the visitor fills the form from
-   scratch, so every failure path returns an empty prefill rather than an error
-   the UI would have to explain. */
+/* The visitor already said what they want, so "What should the bot do?" must
+   never come back empty — a refined version when the model manages one, their
+   own words otherwise. */
+function withSummaryFallback(prefill, text) {
+  if (prefill.summary && prefill.summary.length >= SUMMARY_MIN) return prefill;
+  return { ...prefill, summary: text.slice(0, LIMITS.summary) };
+}
+
+/* Best-effort otherwise: a failed extraction just means the visitor fills the
+   rest of the form themselves, so no failure path surfaces an error. */
 async function handleExtract(request, env) {
   if (await overLimit(env.CHAT_LIMIT, clientKey(request))) return tooManyRequests();
 
@@ -99,15 +113,15 @@ async function handleExtract(request, env) {
   if (!text) return json({ prefill: {} });
 
   try {
-    const result = await env.AI.run(MODEL, {
+    const result = await env.AI.run(extractModel(env), {
       messages: extractionMessages(text, lang),
       max_tokens: 400,
     });
     const parsed = parseJsonObject(result?.response ?? "");
-    return json({ prefill: parsed ? sanitizePrefill(parsed) : {} });
+    return json({ prefill: withSummaryFallback(parsed ? sanitizePrefill(parsed) : {}, text) });
   } catch (err) {
     console.error("Prefill extraction failed:", err.message);
-    return json({ prefill: {} });
+    return json({ prefill: withSummaryFallback({}, text) });
   }
 }
 
