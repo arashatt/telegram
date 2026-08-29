@@ -6,6 +6,7 @@ import {
   handleAuthMe,
   handleAuthStart,
   isAuthConfigured,
+  redirectUri,
 } from "./auth.js";
 import { clientKey, overLimit } from "./ratelimit.js";
 import { deliverBrief, isTelegramConfigured } from "./telegram.js";
@@ -24,6 +25,11 @@ import {
    account actually has, then set CHAT_MODEL / EXTRACT_MODEL in wrangler.jsonc
    vars. Extraction is split out because it wants strict JSON, which is a
    different strength from conversational replies. */
+/* Bumped whenever something ships that is hard to confirm from the outside.
+   /api/health echoes it, so "is the deploy actually live?" is one request
+   rather than an inference from symptoms. */
+const BUILD = "2026-08-29-run-worker-first+critical-css";
+
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
 const extractModel = (env) => env.EXTRACT_MODEL || env.CHAT_MODEL || DEFAULT_MODEL;
@@ -222,6 +228,10 @@ function handleHealth(request, env) {
   return json(
     {
       ok: missing.length === 0,
+      build: BUILD,
+      // The exact string Telegram must have registered as the redirect URI.
+      // A mismatch here is the usual reason sign-in bounces back with an error.
+      redirectUri: redirectUri(request, env),
       checks,
       missing,
       warnings: warnings.length ? warnings : undefined,
