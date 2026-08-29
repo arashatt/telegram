@@ -11,3 +11,12 @@ export function looksPersian(text) {
   if (persian < MIN_PERSIAN_LETTERS) return false;
   return persian >= (text.match(LATIN) ?? []).length;
 }
+
+/* The browser's own language preference — Settings > Languages, which is what
+   navigator.languages exposes. Keyboard layout is deliberately NOT readable by
+   a web page, so this is the closest honest signal. Anything starting with
+   "fa" counts (fa, fa-IR, fa-AF). */
+export function prefersPersian(languages) {
+  const list = languages ?? (typeof navigator === "undefined" ? [] : navigator.languages) ?? [];
+  return list.some((tag) => /^fa(-|$)/i.test(String(tag)));
+}

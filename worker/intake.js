@@ -54,9 +54,11 @@ export function extractionMessages(text, lang) {
       content: [
         "You extract structured data from a description of a wanted Telegram bot.",
         'Respond with a single JSON object and nothing else — no prose, no code fences.',
-        `Keys: "botName" (short string), "summary" (one clear sentence in ${
+        `Keys: "botName" (short string), "summary", "audience" (short string), "integrations" (short string), ${choices}.`,
+        `"summary" is the important one: rewrite what the visitor said as a clear, concrete requirement of one to three sentences in ${
           lang === "fa" ? "Persian" : "English"
-        }), "audience" (short string), "integrations" (short string), ${choices}.`,
+        }, in their voice, keeping every detail they gave.`,
+        "Tidy the wording and fix obvious typos, but never invent a feature, platform, budget or deadline they did not mention.",
         '"features" is an array of the listed values.',
         "Omit any key the text does not support. Never guess a value that is not implied by the text.",
       ].join(" "),

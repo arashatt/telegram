@@ -48,7 +48,7 @@ async function readStream(response, onToken) {
   return full;
 }
 
-export default function Conversation() {
+export default function Conversation({ onActivity }) {
   const { t, lang, setLang } = useI18n();
 
   const [items, setItems] = useState([]);
@@ -69,6 +69,11 @@ export default function Conversation() {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Lets the header ask before throwing away a conversation in progress.
+  useEffect(() => {
+    onActivity?.(items.length > 0);
+  }, [items.length, onActivity]);
 
   const transcript = useCallback(
     () =>
