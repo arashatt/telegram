@@ -58,7 +58,7 @@ function renderValue(field, value, lang) {
 /* One brief -> an array of HTML lines. Lines are the chunking unit, so each
    one keeps its tags balanced and a split can never land mid-tag. */
 export function buildBriefLines(submission) {
-  const { form, lang = "en", transcript = [], meta = {} } = submission;
+  const { form, lang = "en", transcript = [], meta = {}, verified = null } = submission;
   const heading =
     lang === "fa" ? "درخواست جدید ساخت ربات تلگرام" : "New Telegram bot request";
 
@@ -74,6 +74,24 @@ export function buildBriefLines(submission) {
     for (const [field, value] of rendered) {
       lines.push(`• <b>${escapeHtml(title(field, lang))}:</b> ${escapeHtml(value)}`);
     }
+    lines.push("");
+  }
+
+  /* A verified identity is worth more than the typed-in contact fields, so it
+     is called out separately rather than merged into them. */
+  if (verified) {
+    const handle = verified.username ? `@${verified.username}` : "—";
+    const name = [verified.firstName, verified.lastName].filter(Boolean).join(" ");
+    lines.push(
+      `✅ <b>${escapeHtml(
+        lang === "fa" ? "هویت تأییدشده تلگرام" : "Verified Telegram identity"
+      )}</b>`
+    );
+    lines.push(
+      `• ${escapeHtml(handle)}${name ? ` — ${escapeHtml(name)}` : ""} (id <code>${escapeHtml(
+        verified.id
+      )}</code>)`
+    );
     lines.push("");
   }
 

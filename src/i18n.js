@@ -1,8 +1,7 @@
 import { createContext, useContext } from "react";
 
 export const LANGS = ["en", "fa"];
-export const DEFAULT_LANG = "fa";
-export const STORAGE_KEY = "intake.lang";
+export const DEFAULT_LANG = "en";
 
 export function dirFor(lang) {
   return lang === "fa" ? "rtl" : "ltr";
@@ -12,9 +11,6 @@ export const translations = {
   en: {
     siteTitle: "Telegram bot intake",
     tagline: "Telegram bots, built to your spec",
-    langToggle: "فارسی",
-    langToggleLabel: "Switch to Persian",
-
     greeting:
       "Hi — I'm the intake assistant here. Tell me about the Telegram bot you want built: what should it do, and who is it for?",
     placeholder: "Describe the bot you want…",
@@ -29,6 +25,23 @@ export const translations = {
     retry: "Try again",
     startOver: "Start over",
     startOverConfirm: "Clear this conversation and start a new one?",
+
+    switchedToFa: "Switched to Persian.",
+
+    sectionEssentials: "The essentials",
+    detailsOpen: "Add more detail",
+    detailsClose: "Hide extra detail",
+    detailsOptional: "optional",
+    defaultsNote:
+      "Everything else already has a sensible default — open the details only if you want to change something.",
+
+    telegramLoginTitle: "Sign in with Telegram",
+    telegramLoginHint:
+      "Optional. It fills in your name and username, and confirms to us that the account is really yours.",
+    telegramSignedIn: "Signed in as",
+    telegramLoginFailed: "That Telegram sign-in couldn't be verified. You can still fill in the form by hand.",
+
+    rateLimited: "That's a lot of requests at once — please wait a moment and try again.",
 
     formIntro:
       "Great — a few details and I'll hand this straight to the team. The parts I could pick up from your message are already filled in.",
@@ -87,9 +100,6 @@ export const translations = {
   fa: {
     siteTitle: "ثبت سفارش ربات تلگرام",
     tagline: "ربات تلگرام، دقیقاً مطابق نیاز شما",
-    langToggle: "English",
-    langToggleLabel: "تغییر به انگلیسی",
-
     greeting:
       "سلام! من دستیار ثبت سفارش هستم. درباره رباتی که می‌خواهید بسازیم بگویید: قرار است چه کاری انجام دهد و مخاطبش چه کسی است؟",
     placeholder: "رباتی که می‌خواهید را توضیح دهید…",
@@ -103,6 +113,23 @@ export const translations = {
     retry: "تلاش دوباره",
     startOver: "شروع دوباره",
     startOverConfirm: "این گفت‌وگو پاک شود و از نو شروع کنیم؟",
+
+    switchedToFa: "زبان سایت به فارسی تغییر کرد.",
+
+    sectionEssentials: "موارد ضروری",
+    detailsOpen: "افزودن جزئیات بیشتر",
+    detailsClose: "بستن جزئیات",
+    detailsOptional: "اختیاری",
+    defaultsNote:
+      "بقیه موارد از قبل مقدار پیش‌فرض مناسبی دارند — فقط اگر می‌خواهید چیزی را تغییر دهید، جزئیات را باز کنید.",
+
+    telegramLoginTitle: "ورود با تلگرام",
+    telegramLoginHint:
+      "اختیاری. نام و نام کاربری شما را پر می‌کند و برای ما تأیید می‌کند که حساب واقعاً متعلق به شماست.",
+    telegramSignedIn: "واردشده به‌عنوان",
+    telegramLoginFailed: "ورود تلگرام تأیید نشد. می‌توانید فرم را دستی پر کنید.",
+
+    rateLimited: "درخواست‌ها خیلی پرتعداد است — لحظه‌ای صبر کنید و دوباره تلاش کنید.",
 
     formIntro:
       "عالی — چند جزئیات بگیرم و درخواست شما را مستقیم به تیم می‌سپارم. مواردی که از پیام شما قابل برداشت بود، از قبل پر شده‌اند.",

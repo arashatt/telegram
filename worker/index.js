@@ -1,5 +1,7 @@
 import { validateForm } from "../shared/formSchema.js";
+import { clientKey, overLimit } from "./ratelimit.js";
 import { deliverBrief, isTelegramConfigured } from "./telegram.js";
+import { verifyTelegramAuth } from "./telegramAuth.js";
 import {
   chatSystemPrompt,
   extractionMessages,
@@ -18,6 +20,13 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
+
+function tooManyRequests() {
+  return new Response(JSON.stringify({ error: "rate_limited" }), {
+    status: 429,
+    headers: { "content-type": "application/json", "retry-after": "60", ...CORS },
+  });
+}
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -39,6 +48,8 @@ async function readBody(request) {
 }
 
 async function handleChatStream(request, env) {
+  if (await overLimit(env.CHAT_LIMIT, clientKey(request))) return tooManyRequests();
+
   const { body, tooLarge, invalid } = await readBody(request);
   if (tooLarge) return json({ error: "payload_too_large" }, 413);
   if (invalid) return json({ error: "invalid_json" }, 400);
@@ -71,6 +82,8 @@ async function handleChatStream(request, env) {
    scratch, so every failure path returns an empty prefill rather than an error
    the UI would have to explain. */
 async function handleExtract(request, env) {
+  if (await overLimit(env.CHAT_LIMIT, clientKey(request))) return tooManyRequests();
+
   const { body, tooLarge, invalid } = await readBody(request);
   if (tooLarge) return json({ error: "payload_too_large" }, 413);
   if (invalid) return json({ error: "invalid_json" }, 400);
@@ -92,7 +105,24 @@ async function handleExtract(request, env) {
   }
 }
 
+/* The widget's payload is signed by Telegram; the bot token needed to check
+   that signature is a Worker secret, so verification can only happen here. */
+async function handleTelegramVerify(request, env) {
+  if (await overLimit(env.AUTH_LIMIT, clientKey(request))) return tooManyRequests();
+
+  const { body, tooLarge, invalid } = await readBody(request);
+  if (tooLarge) return json({ error: "payload_too_large" }, 413);
+  if (invalid) return json({ error: "invalid_json" }, 400);
+
+  const user = await verifyTelegramAuth(env.TELEGRAM_BOT_TOKEN, body?.auth);
+  if (!user) return json({ error: "verification_failed" }, 401);
+
+  return json({ ok: true, user });
+}
+
 async function handleRequirements(request, env) {
+  if (await overLimit(env.SUBMIT_LIMIT, clientKey(request))) return tooManyRequests();
+
   const { body, tooLarge, invalid } = await readBody(request);
   if (tooLarge) return json({ error: "payload_too_large" }, 413);
   if (invalid) return json({ error: "invalid_json" }, 400);
@@ -115,12 +145,20 @@ async function handleRequirements(request, env) {
     return json({ error: "delivery_not_configured" }, 503);
   }
 
+  // Re-verified from scratch rather than trusted from the earlier call: the
+  // signature is self-contained, so the browser cannot claim an identity it
+  // did not actually sign in with.
+  const verified = body?.telegramAuth
+    ? await verifyTelegramAuth(env.TELEGRAM_BOT_TOKEN, body.telegramAuth)
+    : null;
+
   const reference =
     "REQ-" + crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
   const submission = {
     reference,
     lang,
     form,
+    verified,
     transcript: sanitizeTranscript(body?.transcript),
     meta: {
       referrer: request.headers.get("referer") ?? "",
@@ -139,6 +177,7 @@ const ROUTES = {
   "/api/chat/stream": handleChatStream,
   "/api/extract": handleExtract,
   "/api/requirements": handleRequirements,
+  "/api/telegram/verify": handleTelegramVerify,
 };
 
 export default {

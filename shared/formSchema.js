@@ -21,6 +21,7 @@ export const SUMMARY_MIN = 20;
 const opt = (value, en, fa) => ({ value, en, fa });
 
 export const BOT_TYPE_OPTIONS = [
+  opt("unsure", "Not sure yet", "هنوز مشخص نیست"),
   opt("support", "Customer support", "پشتیبانی مشتری"),
   opt("shop", "Shop / e-commerce", "فروشگاه اینترنتی"),
   opt("notifications", "Notifications & alerts", "اطلاع‌رسانی و هشدار"),
@@ -108,15 +109,15 @@ export function emptyForm() {
   return {
     botName: "",
     summary: "",
-    botType: "",
+    botType: "unsure",
     features: [],
-    botLanguages: ["fa"],
+    botLanguages: [],
     audience: "",
-    scale: "",
+    scale: "unknown",
     integrations: "",
-    hosting: "",
-    timeline: "",
-    budget: "",
+    hosting: "undecided",
+    timeline: "flexible",
+    budget: "unsure",
     contactName: "",
     company: "",
     email: "",
@@ -139,11 +140,10 @@ export function validateForm(form) {
     if (str(key).length > LIMITS[key]) errors[key] = "tooLong";
   }
 
-  if (!str("botName")) errors.botName = "required";
+  /* Deliberately short: everything else has a usable default, so the form can
+     be sent after two fields plus a way to reply. */
   if (!str("summary")) errors.summary = "required";
   else if (str("summary").length < SUMMARY_MIN) errors.summary = "tooShort";
-  if (!str("botType")) errors.botType = "required";
-  if (!str("timeline")) errors.timeline = "required";
   if (!str("contactName")) errors.contactName = "required";
 
   const email = str("email");
