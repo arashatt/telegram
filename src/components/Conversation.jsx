@@ -195,8 +195,8 @@ export default function Conversation() {
         lang,
         transcript: transcript(),
         website: extras.website ?? "",
-        telegramAuth: extras.telegramAuth ?? null,
       }),
+      credentials: "same-origin",
     });
     if (res.status === 429) throw new Error("rate_limited");
     if (!res.ok) throw new Error(`Submit failed (${res.status})`);

@@ -36,8 +36,10 @@ export const translations = {
       "Everything else already has a sensible default — open the details only if you want to change something.",
 
     telegramLoginTitle: "Sign in with Telegram",
+    telegramLoginAction: "Sign in",
+    telegramLoginPending: "Waiting…",
     telegramLoginHint:
-      "Optional. It fills in your name and username, and confirms to us that the account is really yours.",
+      "Optional. Opens a Telegram window, fills in your name and username, and confirms to us that the account is really yours.",
     telegramSignedIn: "Signed in as",
     telegramLoginFailed: "That Telegram sign-in couldn't be verified. You can still fill in the form by hand.",
 
@@ -124,8 +126,10 @@ export const translations = {
       "بقیه موارد از قبل مقدار پیش‌فرض مناسبی دارند — فقط اگر می‌خواهید چیزی را تغییر دهید، جزئیات را باز کنید.",
 
     telegramLoginTitle: "ورود با تلگرام",
+    telegramLoginAction: "ورود",
+    telegramLoginPending: "در انتظار…",
     telegramLoginHint:
-      "اختیاری. نام و نام کاربری شما را پر می‌کند و برای ما تأیید می‌کند که حساب واقعاً متعلق به شماست.",
+      "اختیاری. پنجره تلگرام باز می‌شود، نام و نام کاربری شما را پر می‌کند و برای ما تأیید می‌کند که حساب واقعاً متعلق به شماست.",
     telegramSignedIn: "واردشده به‌عنوان",
     telegramLoginFailed: "ورود تلگرام تأیید نشد. می‌توانید فرم را دستی پر کنید.",
 

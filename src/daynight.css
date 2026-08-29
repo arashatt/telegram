@@ -1,0 +1,144 @@
+/* Day-to-night transition, played once when the site changes language.
+
+   One shared 1400ms timeline: 0% daylight, 50% deepest night (the moment the
+   language swaps behind it), 100% daylight again. Every layer animates on the
+   same clock so the sun, sky, stars and moon stay in step. */
+
+.daynight {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Dusk gradient over the page: warm at the horizon, deep indigo overhead. */
+.daynight__sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #0b1026 0%,
+    #1b2050 32%,
+    #4a3b6b 58%,
+    #b05e3c 78%,
+    #e8913f 90%,
+    #f2c078 100%
+  );
+  opacity: 0;
+  animation: dn-sky 1400ms ease-in-out both;
+}
+
+.daynight__stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 18%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 28% 34%, #fff, transparent),
+    radial-gradient(1.8px 1.8px at 44% 12%, #fff, transparent),
+    radial-gradient(1.3px 1.3px at 61% 27%, #fff, transparent),
+    radial-gradient(1.7px 1.7px at 73% 9%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 86% 31%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 19% 47%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 52% 44%, #fff, transparent),
+    radial-gradient(1.6px 1.6px at 91% 52%, #fff, transparent),
+    radial-gradient(1.3px 1.3px at 36% 58%, #fff, transparent);
+  animation: dn-stars 1400ms ease-in-out both;
+}
+
+/* The sun starts high, slides down and is swallowed by the horizon. */
+.daynight__sun {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  width: 84px;
+  height: 84px;
+  margin: -42px 0 0 -42px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #fff3c4 0%, #ffc23f 55%, #f59110 100%);
+  box-shadow: 0 0 60px 20px rgba(255, 178, 34, 0.55);
+  animation: dn-sun 1400ms cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+
+/* The moon takes its place, rising from the same horizon. The inset shadow
+   carves the crescent without needing a second element. */
+.daynight__moon {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  border-radius: 50%;
+  background: #f4f1e4;
+  box-shadow:
+    inset -14px 6px 0 -2px #cfd6e6,
+    0 0 44px 12px rgba(226, 232, 255, 0.35);
+  opacity: 0;
+  animation: dn-moon 1400ms cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+
+/* A dark band the sun sets into, so it has something to disappear behind. */
+.daynight__horizon {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 34%;
+  background: linear-gradient(180deg, #241a3a 0%, #12091f 60%, #0a0614 100%);
+  transform: translateY(100%);
+  animation: dn-horizon 1400ms ease-in-out both;
+}
+
+@keyframes dn-sky {
+  0% { opacity: 0; }
+  35% { opacity: 0.96; }
+  50% { opacity: 1; }
+  68% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+@keyframes dn-stars {
+  0%, 22% { opacity: 0; }
+  50% { opacity: 0.95; }
+  74% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes dn-sun {
+  0% { transform: translateY(-16vh) scale(1); opacity: 0; }
+  18% { transform: translateY(-10vh) scale(1); opacity: 1; }
+  46% { transform: translateY(26vh) scale(0.82); opacity: 0.9; }
+  56% { transform: translateY(34vh) scale(0.7); opacity: 0; }
+  100% { transform: translateY(34vh) scale(0.7); opacity: 0; }
+}
+
+@keyframes dn-moon {
+  0%, 30% { transform: translateY(34vh) scale(0.75); opacity: 0; }
+  50% { transform: translateY(-6vh) scale(1); opacity: 1; }
+  72% { transform: translateY(-14vh) scale(1); opacity: 0.5; }
+  100% { transform: translateY(-20vh) scale(1); opacity: 0; }
+}
+
+@keyframes dn-horizon {
+  0% { transform: translateY(100%); }
+  40%, 60% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+
+/* Reduced motion: no celestial theatre. The global reset already collapses
+   animation durations, which would leave the overlay stuck mid-frame — so
+   hide its moving parts entirely and keep only a brief neutral veil. */
+@media (prefers-reduced-motion: reduce) {
+  .daynight__stars,
+  .daynight__sun,
+  .daynight__moon,
+  .daynight__horizon {
+    display: none;
+  }
+
+  .daynight__sky {
+    background: #1b2050;
+    opacity: 0.25;
+  }
+}

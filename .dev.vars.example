@@ -1,8 +1,8 @@
 # Copy to .dev.vars for `npm run preview`, and set the same names as Worker
 # secrets for production:  npx wrangler secret put TELEGRAM_BOT_TOKEN
 
-# Required — where finished briefs are delivered, and the key used to verify
-# Telegram Login Widget signatures. Token from @BotFather.
+# Required — where finished briefs are delivered. Token from @BotFather.
+# (Sign-in no longer uses this; it uses the OIDC credentials below.)
 TELEGRAM_BOT_TOKEN=123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Your user id, a group id (negative, e.g. -1001234567890) or a channel id.
 TELEGRAM_CHAT_ID=-1001234567890
@@ -14,13 +14,19 @@ TELEGRAM_CHAT_ID=-1001234567890
 # REQUIREMENTS_WEBHOOK_URL=https://example.com/hooks/bot-brief
 # REQUIREMENTS_WEBHOOK_SECRET=sent-as-a-bearer-token
 
-# --- Build-time, NOT a secret ---------------------------------------------
-# The bot's @username, without the @, for the Telegram Login Widget. Defaults
-# to auth_mebot; set this only to point the site at a different bot. It is
-# baked into the client bundle, so it is a *build* variable in Cloudflare (or
-# .env locally) — never `wrangler secret put`. Set it empty to hide the button.
+# --- Telegram sign-in (OpenID Connect) --------------------------------------
+# Register the app with Telegram and set the redirect URI to
+#   https://<your-domain>/api/auth/telegram/callback
 #
-# There is no "client secret" in this flow: the widget's payload is verified
-# with HMAC keyed on TELEGRAM_BOT_TOKEN above, which is the only credential
-# involved.
-# VITE_TELEGRAM_BOT_USERNAME=some_other_bot
+# TELEGRAM_CLIENT_ID is public (it travels in the authorization URL) and is set
+# in wrangler.jsonc under "vars". Only the secret belongs here:
+TELEGRAM_CLIENT_SECRET=your-oidc-client-secret
+
+# Optional overrides. The redirect URI is derived from the request origin
+# unless you pin it, which you need to do behind a proxy or custom domain.
+# TELEGRAM_REDIRECT_URI=https://example.com/api/auth/telegram/callback
+# TELEGRAM_OIDC_ISSUER=https://oauth.telegram.org
+# TELEGRAM_OIDC_SCOPE=openid
+
+# Leave TELEGRAM_CLIENT_SECRET unset and sign-in is simply not offered — the
+# button does not render and /api/auth/telegram/me reports configured:false.

@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Conversation from "./components/Conversation.jsx";
+import DayNight from "./components/DayNight.jsx";
 import { Mark } from "./components/Brand.jsx";
 import { DEFAULT_LANG, LangContext, dirFor, translations } from "./i18n.js";
 
-/* Long enough to read as a deliberate crossfade, short enough that nobody
-   waits on it. The language actually changes at the midpoint, while the page
-   is invisible, so the RTL/LTR reflow is never seen. */
-const SWAP_MS = 220;
+/* The sunset runs for DAYNIGHT_MS and is darkest at its midpoint, which is
+   exactly when the language swaps — the RTL/LTR reflow happens behind the
+   night sky and is never seen. The page's own fade is shorter, so content is
+   already gone by the time the sky is deep. */
+const DAYNIGHT_MS = 1400;
+const SWAP_MS = DAYNIGHT_MS / 2;
+const FADE_MS = 320;
 const NOTICE_MS = 3600;
 
 export default function App() {
   const [lang, setLang] = useState(DEFAULT_LANG);
   const [phase, setPhase] = useState("idle");
+  const [sunset, setSunset] = useState(false);
   const [notice, setNotice] = useState(false);
   const langRef = useRef(DEFAULT_LANG);
   const timers = useRef([]);
@@ -29,13 +34,15 @@ export default function App() {
   const requestLang = useCallback((next) => {
     if (langRef.current === next) return;
     langRef.current = next;
+    setSunset(true);
     setPhase("out");
 
     timers.current.push(
       setTimeout(() => {
         setLang(next);
         setPhase("in");
-        timers.current.push(setTimeout(() => setPhase("idle"), SWAP_MS));
+        timers.current.push(setTimeout(() => setPhase("idle"), FADE_MS));
+        timers.current.push(setTimeout(() => setSunset(false), SWAP_MS));
 
         // Say what happened once, quietly — a page that silently changes
         // direction is disorienting, and role="status" reads it out.
@@ -58,6 +65,7 @@ export default function App() {
   return (
     <LangContext.Provider value={context}>
       <div className="page" data-phase={phase}>
+        <DayNight active={sunset} />
         <header className="page__header">
           <div className="brand">
             <Mark size={28} filled />
