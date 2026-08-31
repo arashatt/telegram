@@ -145,5 +145,6 @@ export function contactFromUser(user, existing = {}) {
   const name = displayName(user);
   if (name && !existing.contactName) filled.contactName = name;
   if (user.username && !existing.telegram) filled.telegram = `@${user.username}`;
+  if (user.phone && !existing.phone) filled.phone = user.phone;
   return filled;
 }

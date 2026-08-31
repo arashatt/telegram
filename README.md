@@ -186,10 +186,15 @@ The whole exchange happens in the Worker:
 
 ### Reading the signed-in user
 
-`openid` alone yields only `sub` — an id and nothing else — so the scope is
-`openid profile`, which is what carries name, username and photo. Add `phone`
-to `TELEGRAM_OIDC_SCOPE` if you also want the phone number; Telegram asks the
-visitor to consent to that separately.
+`openid` alone yields only `sub` — an id and nothing else. The scope is
+`openid profile phone`: `profile` carries name, username and photo, `phone`
+carries the number. Telegram asks the visitor to consent to the phone
+separately and they may decline, which still signs them in — every claim is
+optional downstream. Set `TELEGRAM_OIDC_SCOPE` to replace the list wholesale,
+e.g. `openid profile` to stop asking for the number.
+
+A verified phone fills the form's phone field, and appears in the brief. It
+never overwrites a number the visitor typed themselves.
 
 Where the identity shows up:
 
