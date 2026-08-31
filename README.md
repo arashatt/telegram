@@ -196,6 +196,24 @@ e.g. `openid profile` to stop asking for the number.
 A verified phone fills the form's phone field, and appears in the brief. It
 never overwrites a number the visitor typed themselves.
 
+### Messaging the visitor back
+
+`telegram:bot_access` is also requested. Bots cannot open a conversation, so
+without it there is no way to reach someone who has never messaged you; this
+scope is the exception, granted at sign-in.
+
+Using it needs `TELEGRAM_LOGIN_BOT_TOKEN`: the token of **the bot behind the
+OIDC client**, which is usually a different bot from the one that delivers
+briefs. Only that bot was granted access to this person, so
+`TELEGRAM_BOT_TOKEN` will not work here.
+
+With it set, a submitted brief also sends the visitor a short confirmation
+carrying their reference, in the language they used. It is best-effort: the
+brief is already delivered by then, so a blocked bot or a failed send is logged
+and never turns a successful submission into an error. Without it, nothing is
+sent — and the scope is then asking for a permission nothing uses, so trim
+`TELEGRAM_OIDC_SCOPE` if you do not intend to.
+
 Where the identity shows up:
 
 | Place | How |
