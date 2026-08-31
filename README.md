@@ -184,6 +184,27 @@ The whole exchange happens in the Worker:
 3. The verified identity is stored in an HMAC-signed, HttpOnly session cookie.
    `GET /api/auth/telegram/me` reports who is signed in.
 
+### Reading the signed-in user
+
+`openid` alone yields only `sub` — an id and nothing else — so the scope is
+`openid profile`, which is what carries name, username and photo. Add `phone`
+to `TELEGRAM_OIDC_SCOPE` if you also want the phone number; Telegram asks the
+visitor to consent to that separately.
+
+Where the identity shows up:
+
+| Place | How |
+| --- | --- |
+| In the browser | `GET /api/auth/telegram/me` → `{ user, configured }` |
+| In the Worker | `currentUser(request, env)` |
+| In your Telegram chat | every brief carries a **Verified Telegram identity** line |
+
+If a provider keeps profile claims out of the `id_token`, the callback tops up
+from the UserInfo endpoint — only when the profile is thin, only filling gaps,
+and only if the returned `sub` matches the `id_token`, as the spec requires.
+The claim *names* received are logged (never their values), so
+`npx wrangler tail` shows exactly what a scope actually granted.
+
 The client secret and the `id_token` never reach the browser, and the browser
 never asserts an identity: `/api/requirements` reads the session cookie itself
 rather than trusting anything in the request body. Session and transaction
