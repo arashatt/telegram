@@ -89,11 +89,15 @@ export default function Conversation() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text, lang }),
         });
-        if (!res.ok) return {};
+        if (!res.ok) return { prefill: {}, modules: [], questions: [] };
         const data = await res.json();
-        return data.prefill ?? {};
+        return {
+          prefill: data.prefill ?? {},
+          modules: data.modules ?? [],
+          questions: data.questions ?? [],
+        };
       } catch {
-        return {};
+        return { prefill: {}, modules: [], questions: [] };
       }
     },
     [lang]
@@ -147,7 +151,7 @@ export default function Conversation() {
         if (!res.ok || !res.body) throw new Error(`Request failed (${res.status})`);
 
         const reply = await readStream(res, setStreamingText);
-        const prefill = prefillPromise ? await prefillPromise : null;
+        const plan = prefillPromise ? await prefillPromise : null;
 
         setItems((prev) => {
           const next = [...prev];
@@ -159,7 +163,15 @@ export default function Conversation() {
               content: reply.trim(),
             });
           }
-          if (prefill) next.push({ id: makeId(), type: "form", prefill });
+          if (plan) {
+            next.push({
+              id: makeId(),
+              type: "form",
+              prefill: plan.prefill,
+              modules: plan.modules,
+              questions: plan.questions,
+            });
+          }
           return next;
         });
       } catch {
@@ -195,6 +207,9 @@ export default function Conversation() {
         lang,
         transcript: transcript(),
         website: extras.website ?? "",
+        modules: extras.modules ?? [],
+        questions: extras.questions ?? [],
+        answers: extras.answers ?? {},
       }),
       credentials: "same-origin",
     });
@@ -206,7 +221,15 @@ export default function Conversation() {
     setItems((prev) =>
       prev.map((item) =>
         item.type === "form"
-          ? { id: item.id, type: "receipt", form, reference: data.reference }
+          ? {
+              id: item.id,
+              type: "receipt",
+              form,
+              reference: data.reference,
+              modules: item.modules,
+              questions: item.questions,
+              answers: extras.answers ?? {},
+            }
           : item
       )
     );
@@ -234,13 +257,24 @@ export default function Conversation() {
               return (
                 <li key={item.id} className="conversation__card">
                   <p className="conversation__card-intro">{t("formIntro")}</p>
-                  <RequirementsForm prefill={item.prefill} onSubmit={submitRequirements} />
+                  <RequirementsForm
+                    prefill={item.prefill}
+                    modules={item.modules}
+                    questions={item.questions}
+                    onSubmit={submitRequirements}
+                  />
                 </li>
               );
             }
             return (
               <li key={item.id} className="conversation__card">
-                <Receipt form={item.form} reference={item.reference} />
+                <Receipt
+                  form={item.form}
+                  reference={item.reference}
+                  modules={item.modules}
+                  questions={item.questions}
+                  answers={item.answers}
+                />
               </li>
             );
           })}

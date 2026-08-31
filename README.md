@@ -124,6 +124,28 @@ message too.
 The brand at the start of the header is a plain link to `/`. Nothing is
 persisted, so a fresh load is a fresh conversation.
 
+## The form is built per visitor
+
+A shop bot and a booking bot need different things asked, so the tailored
+middle of the form is assembled from what the visitor described.
+
+The model does not invent fields. `shared/questionModules.js` holds a curated
+bank of small, bilingual modules — selling & payments, support workload,
+bookings, alerts, group management, content, automation, Mini App, AI replies,
+data & reporting — and extraction returns at most two module ids from it, plus
+up to three short follow-up questions it writes itself for anything the bank
+does not cover.
+
+That split is deliberate: curated modules keep every label bilingual and every
+option value server-validatable, while the free-text follow-ups cover the long
+tail. Model-written questions are treated as untrusted text — stripped of
+markup, length-capped, and given ids we assign rather than any the model sends.
+
+Answers are filtered against the plan on submit, so a request cannot smuggle in
+answers to fields that were never offered. Everything tailored is optional; the
+caps (two modules, three questions) exist so this cannot grow back into the
+form that was overwhelming in the first place.
+
 ## Keeping the form small
 
 Only three things are ever required: what the bot should do, a name, and one

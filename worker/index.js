@@ -1,5 +1,10 @@
 import { LIMITS, SUMMARY_MIN, validateForm } from "../shared/formSchema.js";
 import {
+  sanitizeAnswers,
+  sanitizeModules,
+  sanitizeQuestions,
+} from "../shared/questionModules.js";
+import {
   currentUser,
   handleAuthCallback,
   handleAuthLogout,
@@ -125,10 +130,14 @@ async function handleExtract(request, env) {
       max_tokens: 400,
     });
     const parsed = parseJsonObject(result?.response ?? "");
-    return json({ prefill: withSummaryFallback(parsed ? sanitizePrefill(parsed) : {}, text) });
+    return json({
+      prefill: withSummaryFallback(parsed ? sanitizePrefill(parsed) : {}, text),
+      modules: sanitizeModules(parsed?.modules),
+      questions: sanitizeQuestions(parsed?.questions),
+    });
   } catch (err) {
     console.error("Prefill extraction failed:", err.message);
-    return json({ prefill: withSummaryFallback({}, text) });
+    return json({ prefill: withSummaryFallback({}, text), modules: [], questions: [] });
   }
 }
 
@@ -147,6 +156,14 @@ async function handleRequirements(request, env) {
 
   const lang = normalizeLang(body?.lang);
   const form = sanitizeForm(body?.form);
+
+  /* The tailored part of the form is rebuilt from the plan the browser sends
+     back, then answers are filtered against it — so a crafted request cannot
+     smuggle in fields that were never offered. */
+  const modules = sanitizeModules(body?.modules);
+  const questions = sanitizeQuestions(body?.questions);
+  const answers = sanitizeAnswers(body?.answers, modules, questions);
+
   const errors = validateForm(form);
   if (Object.keys(errors).length) return json({ error: "invalid_form", errors }, 422);
 
@@ -168,6 +185,9 @@ async function handleRequirements(request, env) {
     reference,
     lang,
     form,
+    modules,
+    questions,
+    answers,
     verified,
     transcript: sanitizeTranscript(body?.transcript),
     meta: {

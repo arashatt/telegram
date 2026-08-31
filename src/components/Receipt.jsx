@@ -1,4 +1,9 @@
 import { CHOICE_FIELDS, labelFor } from "../../shared/formSchema.js";
+import {
+  labelFor as questionLabel,
+  moduleFields,
+  optionLabel,
+} from "../../shared/questionModules.js";
 import { useI18n } from "../i18n.js";
 import { Mark } from "./Brand.jsx";
 
@@ -26,7 +31,7 @@ const SUMMARY_ORDER = [
 
 /* Replaces the form in the stream once the brief is away: same information,
    read-only, so the visitor can still see exactly what the team received. */
-export default function Receipt({ form, reference }) {
+export default function Receipt({ form, reference, modules = [], questions = [], answers = {} }) {
   const { t, lang } = useI18n();
 
   const rows = SUMMARY_ORDER.map((field) => {
@@ -41,6 +46,24 @@ export default function Receipt({ form, reference }) {
     return [field, spec ? labelFor(field, value, lang) : value];
   }).filter(Boolean);
 
+  /* Rendered from the same plan the form used, so the receipt shows exactly
+     the questions this visitor was asked. */
+  const tailored = [
+    ...moduleFields(modules).map((field) => {
+      const value = answers[field.key];
+      if (value == null || value === "" || (Array.isArray(value) && !value.length)) return null;
+      const rendered = Array.isArray(value)
+        ? value.map((v) => optionLabel(field, v, lang)).join(listSeparator(lang))
+        : field.type === "select"
+          ? optionLabel(field, value, lang)
+          : value;
+      return [field.key, questionLabel(field, lang), rendered];
+    }),
+    ...questions.map((question) =>
+      answers[question.key] ? [question.key, question.label, answers[question.key]] : null
+    ),
+  ].filter(Boolean);
+
   return (
     <div className="receipt">
       <div className="receipt__head">
@@ -54,6 +77,12 @@ export default function Receipt({ form, reference }) {
 
       <h3 className="receipt__heading">{t("summaryHeading")}</h3>
       <dl className="receipt__list">
+        {tailored.map(([key, question, value]) => (
+          <div key={key} className="receipt__row">
+            <dt>{question}</dt>
+            <dd dir="auto">{value}</dd>
+          </div>
+        ))}
         {rows.map(([field, value]) => (
           <div key={field} className="receipt__row">
             <dt>{t(field)}</dt>

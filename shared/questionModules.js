@@ -1,0 +1,254 @@
+/* Tailored questions.
+
+   A shop bot and a booking bot need different things asked, so the form is
+   assembled per visitor rather than being one fixed list. The model does not
+   invent fields: it picks from this curated bank, which keeps every label
+   bilingual, every option value server-validatable, and the rendered UI
+   predictable. Where the bank does not fit, it may write up to
+   MAX_QUESTIONS free-text follow-ups instead — plain text, nothing that can
+   change how the page behaves.
+
+   Modules stay small on purpose. The form was overwhelming once already; the
+   point here is questions that are more relevant, not more of them. */
+
+export const MAX_MODULES = 2;
+export const MAX_QUESTIONS = 3;
+export const MAX_QUESTION_CHARS = 160;
+export const MAX_ANSWER_CHARS = 600;
+
+const f = (key, type, en, fa, options) => ({ key, type, en, fa, options });
+const o = (value, en, fa) => ({ value, en, fa });
+
+export const MODULES = {
+  shop: {
+    en: "Selling & payments",
+    fa: "فروش و پرداخت",
+    fields: [
+      f("shop.catalogue", "select", "How many products?", "چند محصول دارید؟", [
+        o("few", "Under 20", "کمتر از ۲۰"),
+        o("dozens", "20 – 200", "۲۰ تا ۲۰۰"),
+        o("hundreds", "200 – 2,000", "۲۰۰ تا ۲٬۰۰۰"),
+        o("thousands", "Over 2,000", "بیش از ۲٬۰۰۰"),
+        o("unsure", "Not sure yet", "هنوز مشخص نیست"),
+      ]),
+      f("shop.payment", "text", "Which payment method or gateway?", "روش یا درگاه پرداخت؟"),
+      f("shop.delivery", "select", "What are you delivering?", "چه چیزی تحویل می‌دهید؟", [
+        o("physical", "Physical goods", "کالای فیزیکی"),
+        o("digital", "Digital goods", "محصول دیجیتال"),
+        o("both", "Both", "هر دو"),
+        o("service", "A service", "خدمات"),
+      ]),
+    ],
+  },
+
+  support: {
+    en: "Support workload",
+    fa: "بار پشتیبانی",
+    fields: [
+      f("support.volume", "select", "Roughly how many questions a day?", "روزانه تقریباً چند پرسش؟", [
+        o("low", "Under 10", "کمتر از ۱۰"),
+        o("medium", "10 – 100", "۱۰ تا ۱۰۰"),
+        o("high", "100 – 1,000", "۱۰۰ تا ۱٬۰۰۰"),
+        o("veryHigh", "Over 1,000", "بیش از ۱٬۰۰۰"),
+        o("unsure", "Not sure yet", "هنوز مشخص نیست"),
+      ]),
+      f("support.hours", "select", "When must it answer?", "چه زمانی باید پاسخ دهد؟", [
+        o("always", "Around the clock", "شبانه‌روزی"),
+        o("business", "Business hours", "ساعات اداری"),
+        o("unsure", "Not decided", "تصمیم نگرفته‌ایم"),
+      ]),
+      f("support.handoff", "select", "Hand over to a human?", "انتقال به اپراتور انسانی؟", [
+        o("yes", "Yes, when needed", "بله، در صورت نیاز"),
+        o("no", "No, bot only", "خیر، فقط ربات"),
+        o("unsure", "Not sure yet", "هنوز مشخص نیست"),
+      ]),
+    ],
+  },
+
+  booking: {
+    en: "Bookings",
+    fa: "رزرو و نوبت",
+    fields: [
+      f("booking.resources", "text", "What is being booked?", "چه چیزی رزرو می‌شود؟"),
+      f("booking.calendar", "text", "Any calendar to sync with?", "با چه تقویمی همگام شود؟"),
+      f("booking.payment", "select", "Payment at booking?", "پرداخت هنگام رزرو؟", [
+        o("none", "No payment", "بدون پرداخت"),
+        o("deposit", "Deposit only", "فقط بیعانه"),
+        o("full", "Pay in full", "پرداخت کامل"),
+      ]),
+    ],
+  },
+
+  notifications: {
+    en: "Alerts & notifications",
+    fa: "اطلاع‌رسانی و هشدار",
+    fields: [
+      f("notifications.source", "text", "Where do the events come from?", "رویدادها از کجا می‌آیند؟"),
+      f("notifications.frequency", "select", "How often?", "با چه تناوبی؟", [
+        o("realtime", "As they happen", "لحظه‌ای"),
+        o("hourly", "Hourly", "ساعتی"),
+        o("daily", "Daily", "روزانه"),
+        o("weekly", "Weekly", "هفتگی"),
+      ]),
+      f("notifications.audience", "select", "Who receives them?", "چه کسانی دریافت می‌کنند؟", [
+        o("all", "Everyone", "همه"),
+        o("segments", "Specific groups", "گروه‌های مشخص"),
+        o("individual", "Per person", "هر فرد جداگانه"),
+      ]),
+    ],
+  },
+
+  community: {
+    en: "Group & channel management",
+    fa: "مدیریت گروه و کانال",
+    fields: [
+      f("community.size", "text", "How many members?", "چند عضو دارید؟"),
+      f("community.moderation", "checks", "What should it police?", "چه چیزی را کنترل کند؟", [
+        o("spam", "Spam and links", "هرزنامه و لینک"),
+        o("captcha", "Join verification", "تأیید عضویت"),
+        o("welcome", "Welcome messages", "پیام خوش‌آمد"),
+        o("roles", "Roles and permissions", "نقش‌ها و دسترسی‌ها"),
+        o("reports", "Member reports", "گزارش اعضا"),
+      ]),
+    ],
+  },
+
+  content: {
+    en: "Content",
+    fa: "محتوا",
+    fields: [
+      f("content.source", "text", "Where does the content come from?", "محتوا از کجا می‌آید؟"),
+      f("content.schedule", "select", "How is it published?", "چگونه منتشر می‌شود؟", [
+        o("manual", "Manually", "دستی"),
+        o("scheduled", "On a schedule", "زمان‌بندی‌شده"),
+        o("triggered", "Triggered by events", "بر اساس رویداد"),
+      ]),
+    ],
+  },
+
+  automation: {
+    en: "Internal automation",
+    fa: "اتوماسیون داخلی",
+    fields: [
+      f("automation.systems", "text", "Which systems must it talk to?", "به چه سامانه‌هایی وصل شود؟"),
+      f("automation.users", "select", "Who will use it?", "چه کسانی استفاده می‌کنند؟", [
+        o("few", "A handful of people", "چند نفر"),
+        o("team", "One team", "یک تیم"),
+        o("company", "The whole company", "کل شرکت"),
+      ]),
+    ],
+  },
+
+  miniapp: {
+    en: "Mini App",
+    fa: "مینی‌اپ",
+    fields: [
+      f("miniapp.screens", "text", "What screens does it need?", "چه صفحاتی لازم دارد؟"),
+      f("miniapp.auth", "select", "How do people sign in?", "کاربران چگونه وارد می‌شوند؟", [
+        o("telegram", "Telegram account only", "فقط حساب تلگرام"),
+        o("own", "Your own accounts", "حساب‌های سامانه شما"),
+        o("none", "No sign-in", "بدون ورود"),
+      ]),
+    ],
+  },
+
+  ai: {
+    en: "AI replies",
+    fa: "پاسخ‌های هوش مصنوعی",
+    fields: [
+      f("ai.knowledge", "textarea", "What should it know about?", "درباره چه چیزی بداند؟"),
+      f("ai.tone", "select", "How should it sound?", "لحن آن چگونه باشد؟", [
+        o("friendly", "Friendly", "صمیمی"),
+        o("formal", "Formal", "رسمی"),
+        o("concise", "Short and factual", "کوتاه و دقیق"),
+      ]),
+    ],
+  },
+
+  data: {
+    en: "Data & reporting",
+    fa: "داده و گزارش",
+    fields: [
+      f("data.records", "text", "What needs storing?", "چه اطلاعاتی ذخیره شود؟"),
+      f("data.reports", "select", "What reporting do you need?", "چه گزارشی لازم دارید؟", [
+        o("none", "None", "هیچ"),
+        o("simple", "Simple summaries", "خلاصه‌های ساده"),
+        o("dashboard", "A dashboard", "داشبورد"),
+      ]),
+    ],
+  },
+};
+
+export const MODULE_IDS = Object.keys(MODULES);
+
+export function moduleFields(ids = []) {
+  return ids.flatMap((id) => MODULES[id]?.fields ?? []);
+}
+
+export function fieldByKey(ids, key) {
+  return moduleFields(ids).find((field) => field.key === key) ?? null;
+}
+
+/* Only ids from the bank, deduplicated and capped — a model that asks for
+   every module does not get to rebuild the overwhelming form. */
+export function sanitizeModules(input) {
+  if (!Array.isArray(input)) return [];
+  return [...new Set(input.filter((id) => typeof id === "string" && MODULES[id]))].slice(
+    0,
+    MAX_MODULES
+  );
+}
+
+/* Model-authored follow-ups. Plain text only, stripped of anything that could
+   read as markup, length-capped, and given ids we control rather than any the
+   model supplies. */
+export function sanitizeQuestions(input) {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((entry) => (typeof entry === "string" ? entry : entry?.label))
+    .filter((label) => typeof label === "string")
+    .map((label) => label.replace(/[<>]/g, "").replace(/\s+/g, " ").trim())
+    .filter((label) => label.length >= 8 && label.length <= MAX_QUESTION_CHARS)
+    .slice(0, MAX_QUESTIONS)
+    .map((label, index) => ({ key: `q${index + 1}`, label }));
+}
+
+/* Answers are keyed by field, so anything not offered to this visitor is
+   dropped rather than trusted. */
+export function sanitizeAnswers(answers, modules, questions) {
+  const clean = {};
+  if (!answers || typeof answers !== "object") return clean;
+
+  for (const field of moduleFields(modules)) {
+    const value = answers[field.key];
+    if (field.type === "checks") {
+      if (!Array.isArray(value)) continue;
+      const allowed = new Set((field.options ?? []).map((option) => option.value));
+      const picked = [...new Set(value.filter((v) => allowed.has(v)))];
+      if (picked.length) clean[field.key] = picked;
+    } else if (field.type === "select") {
+      const allowed = new Set((field.options ?? []).map((option) => option.value));
+      if (typeof value === "string" && allowed.has(value)) clean[field.key] = value;
+    } else if (typeof value === "string" && value.trim()) {
+      clean[field.key] = value.trim().slice(0, MAX_ANSWER_CHARS);
+    }
+  }
+
+  for (const question of questions ?? []) {
+    const value = answers[question.key];
+    if (typeof value === "string" && value.trim()) {
+      clean[question.key] = value.trim().slice(0, MAX_ANSWER_CHARS);
+    }
+  }
+
+  return clean;
+}
+
+export function labelFor(field, lang) {
+  return (lang === "fa" ? field.fa : field.en) ?? field.en;
+}
+
+export function optionLabel(field, value, lang) {
+  const match = (field.options ?? []).find((option) => option.value === value);
+  return match ? (lang === "fa" ? match.fa : match.en) : value;
+}

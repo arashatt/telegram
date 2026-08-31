@@ -373,3 +373,13 @@ select.field__control {
   font-size: 0.86rem;
   font-weight: 500;
 }
+
+/* The questions chosen for this visitor. Tinted so it is legible as the part
+   of the form that is specific to them, not more boilerplate. */
+.reqform__section--tailored {
+  background: color-mix(in srgb, var(--color-yellow) 6%, transparent);
+}
+
+.reqform__section--tailored > .reqform__hint {
+  margin: -6px 0 2px;
+}

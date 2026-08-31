@@ -1,4 +1,9 @@
 import { CHOICE_FIELDS, labelFor } from "../shared/formSchema.js";
+import {
+  labelFor as questionLabel,
+  moduleFields,
+  optionLabel,
+} from "../shared/questionModules.js";
 
 const TELEGRAM_API = "https://api.telegram.org";
 /* Telegram caps sendMessage at 4096 characters; leave room for the part
@@ -73,6 +78,34 @@ export function buildBriefLines(submission) {
     lines.push(`${icon} <b>${escapeHtml(lang === "fa" ? names[1] : names[0])}</b>`);
     for (const [field, value] of rendered) {
       lines.push(`• <b>${escapeHtml(title(field, lang))}:</b> ${escapeHtml(value)}`);
+    }
+    lines.push("");
+  }
+
+  /* The questions this visitor was actually asked, with their answers. Kept
+     in its own section because the fields differ from brief to brief. */
+  const tailored = [];
+  for (const field of moduleFields(submission.modules ?? [])) {
+    const value = (submission.answers ?? {})[field.key];
+    if (value == null || value === "" || (Array.isArray(value) && !value.length)) continue;
+    const rendered = Array.isArray(value)
+      ? value.map((v) => optionLabel(field, v, lang)).join(lang === "fa" ? "، " : ", ")
+      : field.type === "select"
+        ? optionLabel(field, value, lang)
+        : value;
+    tailored.push([questionLabel(field, lang), rendered]);
+  }
+  for (const question of submission.questions ?? []) {
+    const value = (submission.answers ?? {})[question.key];
+    if (value) tailored.push([question.label, value]);
+  }
+
+  if (tailored.length) {
+    lines.push(
+      `🎯 <b>${escapeHtml(lang === "fa" ? "پرسش‌های اختصاصی" : "Tailored questions")}</b>`
+    );
+    for (const [question, answer] of tailored) {
+      lines.push(`• <b>${escapeHtml(question)}</b> ${escapeHtml(answer)}`);
     }
     lines.push("");
   }

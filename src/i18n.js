@@ -27,6 +27,8 @@ export const translations = {
     switchedToFa: "Switched to Persian.",
 
     sectionEssentials: "The essentials",
+    sectionTailored: "About your bot",
+    tailoredNote: "A few questions picked for what you described. All optional.",
     detailsOpen: "Add more detail",
     detailsClose: "Hide extra detail",
     detailsOptional: "optional",
@@ -116,6 +118,8 @@ export const translations = {
     switchedToFa: "زبان سایت به فارسی تغییر کرد.",
 
     sectionEssentials: "موارد ضروری",
+    sectionTailored: "درباره ربات شما",
+    tailoredNote: "چند پرسش متناسب با چیزی که توضیح دادید. همه اختیاری هستند.",
     detailsOpen: "افزودن جزئیات بیشتر",
     detailsClose: "بستن جزئیات",
     detailsOptional: "اختیاری",
