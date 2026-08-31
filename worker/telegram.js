@@ -125,6 +125,9 @@ export function buildBriefLines(submission) {
         verified.id
       )}</code>)`
     );
+    if (verified.phone) {
+      lines.push(`• ${escapeHtml(lang === "fa" ? "تلفن" : "Phone")}: ${escapeHtml(verified.phone)}`);
+    }
     lines.push("");
   }
 
