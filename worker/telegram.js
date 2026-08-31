@@ -172,18 +172,16 @@ export function chunkLines(lines, limit = CHUNK_LIMIT) {
   return chunks.length ? chunks : ["(empty)"];
 }
 
-async function sendMessage(env, text) {
-  const res = await fetch(`${TELEGRAM_API}/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+async function post(token, chatId, text, extra = {}) {
+  const res = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      chat_id: env.TELEGRAM_CHAT_ID,
+      chat_id: chatId,
       text,
       parse_mode: "HTML",
       disable_web_page_preview: true,
-      ...(env.TELEGRAM_TOPIC_ID
-        ? { message_thread_id: Number(env.TELEGRAM_TOPIC_ID) }
-        : {}),
+      ...extra,
     }),
   });
 
@@ -194,6 +192,50 @@ async function sendMessage(env, text) {
     );
   }
   return body;
+}
+
+const sendMessage = (env, text) =>
+  post(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_CHAT_ID, text, {
+    ...(env.TELEGRAM_TOPIC_ID ? { message_thread_id: Number(env.TELEGRAM_TOPIC_ID) } : {}),
+  });
+
+export function canMessageVisitor(env) {
+  return Boolean(env?.TELEGRAM_LOGIN_BOT_TOKEN);
+}
+
+/* A confirmation to the visitor's own Telegram, which the telegram:bot_access
+   scope is what makes possible — bots cannot open a conversation otherwise.
+
+   It must come from the bot behind the OIDC client, not the one that delivers
+   briefs: those are usually different bots, and only the login bot was granted
+   access to this person. Best-effort by design; the brief is already delivered
+   and a failed courtesy message must not turn a successful submission into an
+   error. */
+export async function notifyVisitor(env, submission) {
+  const token = env.TELEGRAM_LOGIN_BOT_TOKEN;
+  const userId = submission?.verified?.id;
+  if (!token || !userId) return { sent: false, reason: "not configured" };
+
+  const fa = submission.lang === "fa";
+  const text = [
+    `<b>${escapeHtml(fa ? "درخواست شما ثبت شد" : "Your brief has been received")}</b>`,
+    "",
+    escapeHtml(
+      fa
+        ? "درخواست ساخت ربات تلگرام شما به تیم ما رسید و به‌زودی همین‌جا پاسخ می‌دهیم."
+        : "Your Telegram bot brief reached our team. We will reply here shortly."
+    ),
+    "",
+    `<code>${escapeHtml(submission.reference ?? "")}</code>`,
+  ].join("\n");
+
+  try {
+    await post(token, userId, text);
+    return { sent: true };
+  } catch (err) {
+    console.error("Could not message the visitor:", err.message);
+    return { sent: false, reason: err.message };
+  }
 }
 
 export function isTelegramConfigured(env) {

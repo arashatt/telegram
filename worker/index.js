@@ -14,7 +14,7 @@ import {
   redirectUri,
 } from "./auth.js";
 import { clientKey, overLimit } from "./ratelimit.js";
-import { deliverBrief, isTelegramConfigured } from "./telegram.js";
+import { canMessageVisitor, deliverBrief, isTelegramConfigured, notifyVisitor } from "./telegram.js";
 import {
   chatSystemPrompt,
   extractionMessages,
@@ -200,7 +200,12 @@ async function handleRequirements(request, env) {
   const { results } = await deliverBrief(env, submission);
   if (!results.some((r) => r.ok)) return json({ error: "delivery_failed" }, 502);
 
-  return json({ ok: true, reference });
+  // Courtesy note to the visitor's own Telegram. Awaited so a failure is
+  // logged, but never allowed to fail the submission — the brief is already
+  // delivered by this point.
+  const notified = await notifyVisitor(env, submission);
+
+  return json({ ok: true, reference, notified: notified.sent });
 }
 
 /* Reports which runtime settings the Worker can actually see, so a
@@ -223,6 +228,7 @@ function handleHealth(request, env) {
     telegramDelivery: isTelegramConfigured(env),
     telegramSignIn: isAuthConfigured(env),
     webhookMirror: Boolean(env.REQUIREMENTS_WEBHOOK_URL),
+    visitorDm: canMessageVisitor(env),
     rateLimiters: Boolean(env.CHAT_LIMIT && env.SUBMIT_LIMIT && env.AUTH_LIMIT),
   };
 

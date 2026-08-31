@@ -31,9 +31,13 @@ import {
    name, username and photo; "phone" carries the number, which Telegram asks
    the visitor to consent to separately and which they may decline. Every claim
    is optional downstream, so a refusal still signs them in.
-   TELEGRAM_OIDC_SCOPE replaces this wholesale — drop "phone" from it if you
-   would rather not ask. */
-const SCOPE = "openid profile phone";
+   "telegram:bot_access" lets the bot behind this OIDC client open a direct
+   message with the visitor afterwards — bots cannot start a conversation
+   otherwise. Only worth requesting if something actually sends that message;
+   see TELEGRAM_LOGIN_BOT_TOKEN.
+   TELEGRAM_OIDC_SCOPE replaces this wholesale — trim it if you would rather
+   not ask for a permission you are not using. */
+const SCOPE = "openid profile phone telegram:bot_access";
 
 /* Public — it travels in the authorization URL, so it is a code default rather
    than a secret. Override it from the dashboard to point at a different app. */
