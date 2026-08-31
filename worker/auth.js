@@ -27,11 +27,13 @@ import {
   sealCookie,
 } from "./session.js";
 
-/* "openid" alone yields only `sub` — the user id and nothing else. Name,
-   username and photo come from "profile". Add "phone" here (or via
-   TELEGRAM_OIDC_SCOPE) if you also want the phone number, which Telegram asks
-   the visitor to consent to separately. */
-const SCOPE = "openid profile";
+/* "openid" alone yields only `sub` — an id and nothing else. "profile" carries
+   name, username and photo; "phone" carries the number, which Telegram asks
+   the visitor to consent to separately and which they may decline. Every claim
+   is optional downstream, so a refusal still signs them in.
+   TELEGRAM_OIDC_SCOPE replaces this wholesale — drop "phone" from it if you
+   would rather not ask. */
+const SCOPE = "openid profile phone";
 
 /* Public — it travels in the authorization URL, so it is a code default rather
    than a secret. Override it from the dashboard to point at a different app. */
