@@ -1,64 +1,66 @@
 .reqform {
-  background: var(--color-panel);
-  border: 1px solid var(--color-mist-strong);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lift);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
   overflow: hidden;
 }
 
 .reqform__head {
-  padding: 20px 22px 16px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-yellow) 16%, var(--color-panel)),
-    var(--color-panel)
-  );
-  border-block-end: 1px solid var(--color-mist);
+  padding: 16px 18px 14px;
+  border-block-end: 1px solid var(--line);
 }
 
 .reqform__head h2 {
   margin: 0 0 4px;
-  font-size: 1.08rem;
+  font-size: 17px;
+  font-weight: 700;
 }
 
 .reqform__head p {
   margin: 0;
-  font-size: 0.82rem;
-  color: var(--color-ink-soft);
+  font-size: 13px;
+  color: var(--ink-muted);
 }
 
 .reqform__section {
   border: none;
-  border-block-end: 1px solid var(--color-mist);
+  border-block-end: 1px solid var(--line);
   margin: 0;
-  padding: 20px 22px;
+  padding: 18px;
   display: grid;
   gap: 16px;
 }
 
 .reqform__section > legend {
   padding: 0;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-yellow-deep);
+  color: var(--tg-blue);
+}
+
+/* The questions chosen for this visitor, tinted so it reads as the part of the
+   form that is specific to them. */
+.reqform__section--tailored {
+  background: color-mix(in srgb, var(--tg-blue) 5%, transparent);
 }
 
 .reqform__pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 
 .reqform__hint {
-  margin: -4px 0 0;
-  font-size: 0.8rem;
-  color: var(--color-ink-soft);
+  margin: -8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-muted);
 }
 
 .reqform__foot {
-  padding: 18px 22px;
+  padding: 14px 18px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -67,32 +69,16 @@
 }
 
 .reqform__submit {
-  border: none;
-  border-radius: var(--radius-md);
-  background: var(--color-ink);
-  color: var(--color-paper);
-  font-family: var(--font-display);
-  font-size: 0.92rem;
-  font-weight: 600;
-  padding: 13px 26px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.reqform__submit:not(:disabled):hover {
-  background: var(--color-yellow-deep);
-}
-
-.reqform__submit:disabled {
-  opacity: 0.55;
-  cursor: progress;
+  font-size: 15px;
+  padding: 13px 24px;
+  gap: 8px;
 }
 
 .reqform__error {
   margin: 0;
   margin-inline-end: auto;
-  color: var(--color-danger);
-  font-size: 0.84rem;
+  color: var(--danger);
+  font-size: 13px;
 }
 
 /* Visible to a scraper, unreachable for a person: no display:none, which some
@@ -109,7 +95,7 @@
 
 .field {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -120,7 +106,7 @@
 }
 
 .field__label {
-  font-size: 0.86rem;
+  font-size: 13px;
   font-weight: 600;
   padding: 0;
   display: flex;
@@ -130,31 +116,30 @@
 }
 
 .field__badge {
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--color-yellow-deep);
-  background: color-mix(in srgb, var(--color-yellow) 22%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tg-blue-ink);
+  background: color-mix(in srgb, var(--tg-blue) 14%, transparent);
   border-radius: 999px;
-  padding: 2px 8px;
+  padding: 3px 9px;
 }
 
 .field__control {
   width: 100%;
   padding: 11px 13px;
-  border: 1px solid var(--color-mist-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-paper);
-  color: var(--color-ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r-input);
+  background: var(--bg);
+  color: var(--ink);
   font-family: var(--font-display);
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 textarea.field__control {
   resize: vertical;
-  min-height: 68px;
+  min-height: 92px;
+  line-height: 1.6;
 }
 
 select.field__control {
@@ -162,168 +147,132 @@ select.field__control {
 }
 
 .field__control[aria-invalid="true"] {
-  border-color: var(--color-danger);
-  background: rgba(164, 57, 42, 0.04);
+  border-color: var(--danger);
 }
 
 .field__hint {
   margin: 0;
-  font-size: 0.78rem;
-  color: var(--color-ink-soft);
+  font-size: 12px;
+  color: var(--ink-muted);
 }
 
 .field__error {
   margin: 0;
-  font-size: 0.78rem;
-  color: var(--color-danger);
+  font-size: 12px;
+  color: var(--danger);
 }
 
-/* ---- checkbox chips ---- */
+/* ---- feature chips ---- */
 
 .checks {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-}
-
-.checks--inline {
-  grid-template-columns: repeat(auto-fill, minmax(120px, auto));
 }
 
 .check {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 12px;
-  border: 1px solid var(--color-mist-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-paper);
-  font-size: 0.85rem;
+  padding: 8px 15px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .check:hover {
-  border-color: var(--color-yellow-deep);
+  border-color: var(--tg-blue);
 }
 
 .check--on {
-  border-color: var(--color-yellow-deep);
-  background: color-mix(in srgb, var(--color-yellow) 14%, transparent);
+  border-color: var(--tg-blue);
+  background: color-mix(in srgb, var(--tg-blue) 12%, transparent);
+  color: var(--tg-blue-ink);
 }
 
+/* The checkbox stays for semantics and keyboard use; the chip is the control. */
 .check input {
-  accent-color: var(--color-yellow-deep);
-  width: 16px;
-  height: 16px;
-  flex: none;
-  margin: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .check:has(input:focus-visible) {
-  outline: 2px solid var(--color-yellow-deep);
+  outline: 2px solid var(--tg-blue);
   outline-offset: 2px;
-}
-
-@media (max-width: 600px) {
-  .reqform__pair {
-    grid-template-columns: 1fr;
-  }
-
-  .reqform__section,
-  .reqform__head,
-  .reqform__foot {
-    padding-inline: 16px;
-  }
-
-  .checks {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ---- progressive disclosure ---- */
 
 .reqform__more {
-  padding: 16px 22px;
-  border-block-end: 1px solid var(--color-mist);
+  padding: 14px 18px;
+  border-block-end: 1px solid var(--line);
 }
 
 .reqform__disclosure {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   width: 100%;
   border: none;
   background: none;
   padding: 0;
   font-family: var(--font-display);
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--color-ink);
+  color: var(--ink);
   cursor: pointer;
   text-align: start;
 }
 
 .reqform__disclosure:hover {
-  color: var(--color-yellow-deep);
+  color: var(--tg-blue);
 }
 
-.reqform__chevron {
-  display: inline-block;
-  font-size: 1.1rem;
+.reqform__toggle {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tg-blue) 14%, transparent);
+  color: var(--tg-blue);
+  font-size: 14px;
   line-height: 1;
-  transition: transform 0.2s ease;
-}
-
-/* The glyph points inline-end, so RTL needs the opposite resting rotation. */
-.reqform__chevron--open {
-  transform: rotate(90deg);
-}
-
-[dir="rtl"] .reqform__chevron {
-  transform: rotate(180deg);
-}
-
-[dir="rtl"] .reqform__chevron--open {
-  transform: rotate(90deg);
+  display: grid;
+  place-items: center;
 }
 
 .reqform__optional {
   font-weight: 400;
-  font-size: 0.78rem;
-  color: var(--color-ink-soft);
+  font-size: 12px;
+  color: var(--ink-muted);
 }
 
 .reqform__more .reqform__hint {
   margin: 8px 0 0;
-  padding-inline-start: 20px;
+  padding-inline-start: 31px;
   line-height: 1.6;
 }
 
 .reqform__reveal {
-  animation: reveal-in 0.24s ease-out;
+  animation: tgn-in 0.22s ease-out;
 }
 
-@keyframes reveal-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* ---- telegram sign-in ---- */
+/* ---- telegram sign-in panel ---- */
 
 .tglogin {
   display: grid;
   gap: 6px;
   padding: 12px 14px;
-  border: 1px dashed var(--color-mist-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-paper);
+  border-radius: var(--r-input);
+  background: color-mix(in srgb, var(--tg-blue) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tg-blue) 22%, transparent);
 }
 
 .tglogin__row {
@@ -335,51 +284,34 @@ select.field__control {
 }
 
 .tglogin__title {
-  font-size: 0.86rem;
+  font-size: 14px;
   font-weight: 600;
 }
 
-.tglogin__button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: #2aabee;
-  color: #fff;
-  font-family: var(--font-display);
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 9px 16px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.tglogin__button:not(:disabled):hover {
-  background: #1d97d7;
-}
-
-.tglogin__button:disabled {
-  opacity: 0.6;
-  cursor: progress;
+.tglogin .field__hint {
+  max-width: 46ch;
+  line-height: 1.5;
 }
 
 .tglogin__verified {
   margin: 0;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  background: rgba(76, 122, 61, 0.1);
-  color: var(--color-leaf);
-  font-size: 0.86rem;
+  padding: 11px 14px;
+  border-radius: var(--r-input);
+  background: color-mix(in srgb, var(--tg-blue) 10%, transparent);
+  color: var(--tg-blue-ink);
+  font-size: 14px;
   font-weight: 500;
 }
 
-/* The questions chosen for this visitor. Tinted so it is legible as the part
-   of the form that is specific to them, not more boilerplate. */
-.reqform__section--tailored {
-  background: color-mix(in srgb, var(--color-yellow) 6%, transparent);
-}
+@media (max-width: 600px) {
+  .reqform__pair {
+    grid-template-columns: 1fr;
+  }
 
-.reqform__section--tailored > .reqform__hint {
-  margin: -6px 0 2px;
+  .reqform__section,
+  .reqform__head,
+  .reqform__foot,
+  .reqform__more {
+    padding-inline: 16px;
+  }
 }

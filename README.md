@@ -31,6 +31,18 @@ Briefs go to Telegram via the Bot API (`sendMessage`, HTML parse mode).
 Values are HTML-escaped and long briefs are split across messages at line
 boundaries so a split never lands mid-tag.
 
+## Design
+
+The visual language is documented as a skill:
+`.claude/skills/telegram-native-design/SKILL.md`. Read it before adding or
+restyling any UI — it carries the tokens, type scale, radii, motion timings and
+the RTL rules, so new work matches rather than drifts.
+
+The short version: every value resolves through a token in `src/index.css`,
+light on `:root` and dark redefining only what differs, which is what makes the
+theme a single `data-theme` attribute. Theme follows `prefers-color-scheme`
+with a header toggle, and like the language it is not persisted.
+
 ## Runtime configuration
 
 All runtime settings are read from the Worker environment, and in production
@@ -94,15 +106,13 @@ Persian-script letters against Latin ones and needs at least three of them to
 outweigh the Latin, so "I want a ربات" does not flip the page and a stray
 emoji never does.
 
-The swap plays as a sunset: the sky deepens, the sun sets, stars come out and
-the moon rises, then it lifts back to daylight in the new language. The change
-happens at peak night — 700ms into a 1400ms timeline — while the page is hidden
-behind the overlay, so the RTL/LTR reflow is never seen. The page's own fade is
-shorter and uses opacity only; a transform would shift layout and can flash a
-scrollbar. Under `prefers-reduced-motion` the celestial parts are dropped for a
-brief neutral veil, since the global animation reset would otherwise freeze the
-overlay mid-frame. A short notice says what happened, and `role="status"` reads
-it to a screen reader.
+The swap plays behind a veil: an opaque cross-fade of the page ground. The
+language and `dir` change at 420ms of a 900ms timeline, while the veil is at
+full opacity, so the RTL/LTR reflow is never seen — which is the whole point,
+and why no separate page fade is needed. A short notice says what happened, and
+`role="status"` reads it to a screen reader. Because nothing depends on an
+animation finishing, the global reduced-motion reset degrades it safely with no
+per-component exceptions.
 
 The switch is one-way by design: nothing is persisted, so every visit starts
 from the browser's own preference, and there is no control to go back
@@ -284,14 +294,16 @@ re-validated server-side, and a honeypot field.
 shared/formSchema.js   fields, option values + labels, validation (client & Worker)
 src/i18n.js            UI strings, language context
 src/lang.js            Persian-script detection
-src/daynight.css       the sunset transition
 src/App.jsx            page shell, language switch
 src/components/
   Conversation.jsx     stream, SSE reading, orchestration
   RequirementsForm.jsx the inline form
   Receipt.jsx          read-only summary after submitting
   TelegramLogin.jsx    popup sign-in, verified server-side
-  DayNight.jsx         sunset overlay for the language change
+  Landing.jsx          hero, trust strip, how-it-works, footer
+  BotMark.jsx          animated hero mark
+  HubDiagram.jsx       animated how-it-works diagram
+  Icons.jsx            inline SVG glyphs
 worker/
   index.js             routes
   intake.js            prompts, JSON extraction, sanitising

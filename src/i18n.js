@@ -26,6 +26,49 @@ export const translations = {
 
     switchedToFa: "Switched to Persian.",
 
+    themeToggle: "Switch theme",
+    online: "online",
+    typingStatus: "typing…",
+
+    heroKicker: "Intake takes about two minutes",
+    heroTitle: "Custom Telegram bot development",
+    heroBody:
+      "Tell us what your Telegram bot should do and get a scoped quote. Shops, customer support, bookings, notifications, moderation, surveys and internal automation.",
+    heroPrimary: "Describe the bot you want",
+    heroSecondary: "See how it works",
+
+    trustTimelineKicker: "Timeline",
+    trustTimelineTitle: "Days for a simple bot, weeks with payments",
+    trustTimelineBody:
+      "Tell us your deadline in the brief and we will say whether it is realistic.",
+    trustLanguagesKicker: "Languages",
+    trustLanguagesTitle: "Persian, English, Arabic, Turkish",
+    trustLanguagesBody:
+      "Multi-language replies, and this page follows your language too.",
+    trustHostingKicker: "Hosting",
+    trustHostingTitle: "We host it, or you do",
+    trustHostingBody: "Undecided is a fine answer — the form defaults to it.",
+
+    howTitle: "How the bot works once it is live",
+    howBody:
+      "Your customer only ever sees a Telegram chat. Behind it, the bot is the hub: it reads and writes your records, gives your team an admin panel, and pings your own chat the moment something needs a person.",
+    howMenus: "Inline keyboards and menus, so nobody types commands.",
+    howDatabase: "Stored records, so an order is never just a message.",
+    howScheduled: "Scheduled messages and alerts, delivered where people already are.",
+
+    hubCustomer: "Your customer in Telegram",
+    hubAdmin: "Admin panel",
+    hubDatabase: "Database",
+    hubTeam: "Your team's chat",
+
+    briefTitle: "Describe the bot you want",
+    briefSub:
+      "The assistant asks what it needs to, fills in a short form from what you said, and sends the brief to our team.",
+
+    footerNote: "Nothing is persisted — a fresh load is a fresh conversation.",
+    footerLink: "Start the brief",
+
+
     sectionEssentials: "The essentials",
     sectionTailored: "About your bot",
     tailoredNote: "A few questions picked for what you described. All optional.",
@@ -116,6 +159,49 @@ export const translations = {
     retry: "تلاش دوباره",
 
     switchedToFa: "زبان سایت به فارسی تغییر کرد.",
+
+    themeToggle: "تغییر پوسته",
+    online: "آنلاین",
+    typingStatus: "در حال نوشتن…",
+
+    heroKicker: "ثبت سفارش حدود دو دقیقه طول می‌کشد",
+    heroTitle: "ساخت ربات اختصاصی تلگرام",
+    heroBody:
+      "بگویید ربات تلگرام شما چه کاری باید انجام دهد تا برآورد دقیق دریافت کنید. فروشگاه، پشتیبانی مشتری، رزرو، اطلاع‌رسانی، مدیریت گروه، نظرسنجی و اتوماسیون داخلی.",
+    heroPrimary: "ربات مورد نظرتان را توضیح دهید",
+    heroSecondary: "ببینید چطور کار می‌کند",
+
+    trustTimelineKicker: "زمان تحویل",
+    trustTimelineTitle: "چند روز برای ربات ساده، چند هفته با پرداخت",
+    trustTimelineBody:
+      "مهلت خود را در فرم بنویسید تا بگوییم آیا واقع‌بینانه است یا نه.",
+    trustLanguagesKicker: "زبان‌ها",
+    trustLanguagesTitle: "فارسی، انگلیسی، عربی، ترکی",
+    trustLanguagesBody:
+      "پاسخ‌های چندزبانه — و این صفحه هم از زبان شما پیروی می‌کند.",
+    trustHostingKicker: "میزبانی",
+    trustHostingTitle: "ما میزبانی می‌کنیم، یا خودتان",
+    trustHostingBody: "«هنوز تصمیم نگرفته‌ایم» هم پاسخ درستی است — پیش‌فرض فرم همین است.",
+
+    howTitle: "ربات پس از راه‌اندازی چگونه کار می‌کند",
+    howBody:
+      "مشتری شما فقط یک گفت‌وگوی تلگرامی می‌بیند. پشت آن، ربات نقش هسته را دارد: اطلاعات شما را می‌خواند و می‌نویسد، به تیمتان پنل مدیریت می‌دهد، و هر وقت کاری به یک انسان نیاز داشت به چت خودتان خبر می‌دهد.",
+    howMenus: "کیبورد و منوی این‌لاین، تا کسی مجبور به تایپ دستور نباشد.",
+    howDatabase: "ذخیره اطلاعات، تا یک سفارش فقط یک پیام نباشد.",
+    howScheduled: "پیام‌ها و هشدارهای زمان‌بندی‌شده، همان‌جا که مخاطب حضور دارد.",
+
+    hubCustomer: "مشتری شما در تلگرام",
+    hubAdmin: "پنل مدیریت",
+    hubDatabase: "پایگاه داده",
+    hubTeam: "چت تیم شما",
+
+    briefTitle: "ربات مورد نظرتان را توضیح دهید",
+    briefSub:
+      "دستیار هر چه لازم باشد می‌پرسد، از گفته‌های شما فرم کوتاهی را پر می‌کند و درخواست را به تیم ما می‌فرستد.",
+
+    footerNote: "هیچ اطلاعاتی ذخیره نمی‌شود — هر بار باز کردن صفحه یعنی گفت‌وگویی تازه.",
+    footerLink: "شروع ثبت سفارش",
+
 
     sectionEssentials: "موارد ضروری",
     sectionTailored: "درباره ربات شما",

@@ -1,31 +1,36 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Conversation from "./components/Conversation.jsx";
-import DayNight from "./components/DayNight.jsx";
+import Landing from "./components/Landing.jsx";
 import SignIn from "./components/SignIn.jsx";
-import { Mark } from "./components/Brand.jsx";
-import { SessionContext, useTelegramSession } from "./session.js";
+import { BubbleMark, MoonIcon } from "./components/Icons.jsx";
 import { DEFAULT_LANG, LangContext, dirFor, translations } from "./i18n.js";
 import { prefersPersian } from "./lang.js";
+import { SessionContext, useTelegramSession } from "./session.js";
 
-/* The sunset runs for DAYNIGHT_MS and is darkest at its midpoint, which is
-   exactly when the language swaps — the RTL/LTR reflow happens behind the
-   night sky and is never seen. The page's own fade is shorter, so content is
-   already gone by the time the sky is deep. */
-const DAYNIGHT_MS = 1400;
-const SWAP_MS = DAYNIGHT_MS / 2;
-const FADE_MS = 320;
-const NOTICE_MS = 3600;
+/* The veil is opaque across its midpoint, so the language and direction swap
+   entirely out of sight. That is the whole trick: the reflow is never seen, so
+   no separate page fade is needed. */
+const VEIL_MS = 900;
+const SWAP_MS = 420;
+const NOTICE_MS = 4200;
 
 /* A visitor whose browser asks for Persian gets Persian from the first paint —
-   no sunset, since nothing is changing for them. Everyone else starts in
-   English, and the static HTML is English too so no Persian ever flashes in
-   the tab title. */
+   no veil, since nothing is changing for them. */
 const initialLang = () => (prefersPersian() ? "fa" : DEFAULT_LANG);
+
+/* Follows the system by default. Not persisted, matching the site's rule that
+   nothing is: the language is not remembered either, and a fresh load is a
+   fresh conversation. */
+const initialTheme = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 
 export default function App() {
   const [lang, setLang] = useState(initialLang);
-  const [phase, setPhase] = useState("idle");
-  const [sunset, setSunset] = useState(false);
+  const [theme, setTheme] = useState(initialTheme);
+  const [veil, setVeil] = useState(false);
   const [notice, setNotice] = useState(false);
   const langRef = useRef(null);
   const timers = useRef([]);
@@ -38,38 +43,32 @@ export default function App() {
     return () => pending.forEach(clearTimeout);
   }, []);
 
-  /* There is no language button: the only caller is the conversation, when the
-     visitor writes Persian. The whole sequence is driven from here rather than
-     from effects, so the swap is one intentional animation instead of a chain
-     of renders reacting to each other. */
+  /* No language button: the only caller is the conversation, when the visitor
+     writes Persian. Driven from here rather than from effects, so the swap is
+     one intentional sequence instead of renders reacting to each other. */
   const requestLang = useCallback((next) => {
     if (langRef.current === next) return;
     langRef.current = next;
-    setSunset(true);
-    setPhase("out");
+    setVeil(true);
 
     timers.current.push(
       setTimeout(() => {
         setLang(next);
-        setPhase("in");
-        timers.current.push(setTimeout(() => setPhase("idle"), FADE_MS));
-        timers.current.push(setTimeout(() => setSunset(false), SWAP_MS));
-
-        // Say what happened once, quietly — a page that silently changes
-        // direction is disorienting, and role="status" reads it out.
         if (next !== DEFAULT_LANG) {
           setNotice(true);
           timers.current.push(setTimeout(() => setNotice(false), NOTICE_MS));
         }
       }, SWAP_MS)
     );
+    timers.current.push(setTimeout(() => setVeil(false), VEIL_MS));
   }, []);
 
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = dirFor(lang);
+    document.documentElement.dataset.theme = theme;
     document.title = dict.siteTitle;
-  }, [lang, dict]);
+  }, [lang, theme, dict]);
 
   const context = useMemo(() => ({ lang, setLang: requestLang }), [lang, requestLang]);
   const session = useTelegramSession();
@@ -77,29 +76,44 @@ export default function App() {
   return (
     <LangContext.Provider value={context}>
       <SessionContext.Provider value={session}>
-      <div className="page" data-phase={phase}>
-        <DayNight active={sunset} />
-        <header className="page__header">
-          {/* The whole brand is the way home. A fresh load is a fresh
-              conversation, since nothing is persisted. */}
-          <a className="brand" href="/">
-            <Mark size={28} filled />
-            <span className="brand__title">{dict.tagline}</span>
-          </a>
+        <div className="page" data-theme={theme}>
+          {veil && <div className="veil" aria-hidden="true" />}
 
-          <div className="page__header-end">
-            <SignIn />
+          <header className="page__header">
+            <div className="page__header-inner">
+              {/* The whole brand is the way home. Nothing is persisted, so a
+                  fresh load is a fresh conversation. */}
+              <a className="brand" href="/">
+                <span className="brand__disc">
+                  <BubbleMark size={19} />
+                </span>
+                <span className="brand__title">{dict.tagline}</span>
+              </a>
+
+              <div className="page__header-end">
+                <button
+                  type="button"
+                  className="themetoggle"
+                  onClick={() => setTheme((value) => (value === "dark" ? "light" : "dark"))}
+                  aria-label={dict.themeToggle}
+                >
+                  <MoonIcon />
+                </button>
+                <SignIn />
+              </div>
+            </div>
+          </header>
+
+          <main>
+            <Landing>
+              <Conversation />
+            </Landing>
+          </main>
+
+          <div className="langnotice" role="status" aria-live="polite">
+            {notice && <span className="langnotice__pill">{dict.switchedToFa}</span>}
           </div>
-        </header>
-
-        <main className="page__main">
-          <Conversation />
-        </main>
-
-        <div className="langnotice" role="status" aria-live="polite">
-          {notice && <span className="langnotice__pill">{dict.switchedToFa}</span>}
         </div>
-      </div>
       </SessionContext.Provider>
     </LangContext.Provider>
   );

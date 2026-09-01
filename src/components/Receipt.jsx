@@ -5,7 +5,7 @@ import {
   optionLabel,
 } from "../../shared/questionModules.js";
 import { useI18n } from "../i18n.js";
-import { Mark } from "./Brand.jsx";
+import { CheckIcon } from "./Icons.jsx";
 
 const listSeparator = (lang) => (lang === "fa" ? "، " : ", ");
 
@@ -67,7 +67,9 @@ export default function Receipt({ form, reference, modules = [], questions = [],
   return (
     <div className="receipt">
       <div className="receipt__head">
-        <Mark size={22} filled />
+        <span className="receipt__tick">
+          <CheckIcon size={17} strokeWidth={2.5} />
+        </span>
         <div>
           <h2 className="receipt__title">{t("sentTitle")}</h2>
           <p className="receipt__body">{t("sentBody")}</p>
