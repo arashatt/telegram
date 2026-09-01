@@ -1,6 +1,6 @@
 import { useI18n } from "../i18n.js";
 import { displayName, useSession } from "../session.js";
-import { TelegramGlyph } from "./SignIn.jsx";
+import { PlaneGlyph } from "./Icons.jsx";
 
 /* The in-form panel. It shares the page's single session rather than running
    its own — signing in from the header fills the form, and signing in here
@@ -28,11 +28,11 @@ export default function TelegramLogin() {
         <span className="tglogin__title">{t("telegramLoginTitle")}</span>
         <button
           type="button"
-          className="tglogin__button"
+          className="pill pill--provider"
           onClick={session.signIn}
           disabled={session.pending}
         >
-          <TelegramGlyph />
+          <PlaneGlyph />
           {session.pending ? t("telegramLoginPending") : t("telegramLoginAction")}
         </button>
       </div>

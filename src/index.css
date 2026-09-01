@@ -1,25 +1,52 @@
+/* Design tokens. Every value in the UI resolves through these; nothing is
+   hard-coded per component, which is what makes the theme swap a one-attribute
+   change. Light is the base; [data-theme="dark"] redefines only what differs. */
 :root {
-  --color-paper: #fffdf6;
-  --color-panel: #ffffff;
-  --color-ink: #201a0a;
-  --color-ink-soft: #6b5f45;
-  --color-yellow: #ffb222;
-  --color-yellow-deep: #e89a00;
-  --color-leaf: #4c7a3d;
-  --color-mist: #efe9d8;
-  --color-mist-strong: #e2d9bf;
-  --color-danger: #a4392a;
+  --tg-blue: #2f9fdd; /* primary accent: buttons, links, active chrome */
+  --tg-blue-strong: #1c8cca; /* hover / pressed */
+  --tg-blue-ink: #17608c; /* accent text on tinted fills */
+  --bg: #ffffff; /* chat ground, bands, inputs */
+  --bg-alt: #f4f6f8; /* page ground */
+  --surface: #ffffff; /* cards, composer, labels */
+  --bubble-in: #f1f3f5; /* assistant bubble, disabled fills */
+  --bubble-out: #dff0fb; /* user bubble */
+  --ink: #0f1419;
+  --ink-muted: #707a83;
+  --line: #e6eaee;
+  --danger: #d64d3f;
 
-  --font-display: "Vazirmatn", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* The Telegram sign-in control keeps Telegram's own blue, deliberately
+     distinct from --tg-blue: it is a provider button and should read as one,
+     the way a Google sign-in does. Everything else uses the accent. */
+  --provider-blue: #2aabee;
+  --provider-blue-strong: #1d97d7;
 
-  --radius-lg: 20px;
-  --radius-md: 14px;
-  --radius-sm: 8px;
+  --r-card: 14px;
+  --r-bubble: 18px;
+  --r-input: 10px;
+  --shadow: 0 2px 10px rgba(15, 20, 25, 0.06);
+  --shadow-lift: 0 10px 32px rgba(15, 20, 25, 0.12);
 
-  --shell: 780px;
-  --shadow-soft: 0 6px 20px rgba(32, 26, 10, 0.06);
-  --shadow-lift: 0 14px 40px rgba(32, 26, 10, 0.12);
+  --font-display: "Vazirmatn", -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  --gutter: 22px;
+  --shell: 1140px;
+}
+
+[data-theme="dark"] {
+  --tg-blue: #4aa8e0;
+  --tg-blue-strong: #63b7ea;
+  --tg-blue-ink: #a7d8f4;
+  --bg: #131a22;
+  --bg-alt: #0e141b;
+  --surface: #1b242e;
+  --bubble-in: #202b36;
+  --bubble-out: #21455e;
+  --ink: #e7edf3;
+  --ink-muted: #8c99a4;
+  --line: #26313c;
+  --danger: #f08b7f;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow-lift: 0 12px 34px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -29,95 +56,234 @@
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
   margin: 0;
   font-family: var(--font-display);
-  background: var(--color-paper);
-  color: var(--color-ink);
+  background: var(--bg-alt);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Full-height column: a fixed header, a scrolling conversation, and a
-   composer pinned to the bottom edge. */
 .page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  min-height: 100%;
+  background: var(--bg-alt);
 }
 
+/* ---- header ---- */
+
 .page__header {
-  flex: none;
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-block-end: 1px solid var(--line);
+}
+
+.page__header-inner {
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 10px var(--gutter);
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--color-mist-strong);
-  background: color-mix(in srgb, var(--color-paper) 88%, transparent);
-  backdrop-filter: blur(8px);
-}
-
-.page__main {
-  flex: 1;
-  min-height: 0;
-  display: flex;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   color: inherit;
   text-decoration: none;
-  border-radius: var(--radius-sm);
 }
 
-.brand:hover .brand__title {
-  color: var(--color-yellow-deep);
+.brand__disc {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--tg-blue);
+  display: grid;
+  place-items: center;
 }
 
 .brand__title {
-  font-weight: 700;
-  font-size: 0.98rem;
-  line-height: 1.3;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
-/* Language crossfade. Only opacity animates — a transform here would shift
-   layout and can flash a scrollbar, which is the opposite of seamless. */
-.page__header,
-.page__main {
-  transition: opacity 320ms ease;
+.brand:hover .brand__title {
+  color: var(--tg-blue);
 }
 
-.page[data-phase="out"] .page__header,
-.page[data-phase="out"] .page__main {
-  opacity: 0;
+.page__header-end {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-/* Quiet confirmation that the site changed language, then it goes away. */
+.themetoggle {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.themetoggle:hover {
+  color: var(--tg-blue);
+  border-color: var(--tg-blue);
+}
+
+/* ---- shared controls ---- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: 999px;
+  background: var(--tg-blue);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 18px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.pill:hover {
+  background: var(--tg-blue-strong);
+}
+
+.pill:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* The provider button keeps Telegram's own blue — see the token note. */
+.pill--provider {
+  background: var(--provider-blue);
+}
+
+.pill--provider:hover {
+  background: var(--provider-blue-strong);
+}
+
+.pill--ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.pill--ghost:hover {
+  background: var(--surface);
+  border-color: var(--tg-blue);
+  color: var(--tg-blue);
+}
+
+.signin--on {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--tg-blue);
+}
+
+.signin__who {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signin__out {
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  font-family: var(--font-display);
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.signin__out:hover {
+  background: var(--bubble-in);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--tg-blue);
+  outline-offset: 2px;
+}
+
+/* ---- language veil ----
+   Replaces the sunset overlay. Opaque at the midpoint, so the RTL/LTR reflow
+   happens entirely out of sight; a cross-fade degrades safely under reduced
+   motion with no per-component exceptions. */
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--bg);
+  pointer-events: none;
+  animation: tgn-veil 900ms ease-in-out both;
+}
+
+@keyframes tgn-veil {
+  0% {
+    opacity: 0;
+  }
+  35%,
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 .langnotice {
   position: fixed;
-  inset-block-end: 84px;
+  inset-block-end: 30px;
   inset-inline: 0;
   display: flex;
   justify-content: center;
   pointer-events: none;
-  z-index: 20;
+  z-index: 70;
 }
 
 .langnotice__pill {
-  background: var(--color-ink);
-  color: var(--color-paper);
-  font-size: 0.82rem;
-  padding: 8px 16px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  padding: 9px 18px;
   border-radius: 999px;
   box-shadow: var(--shadow-lift);
-  animation: langnotice-in 220ms ease-out;
+  animation: tgn-in 220ms ease-out;
 }
 
-@keyframes langnotice-in {
+@keyframes tgn-in {
   from {
     opacity: 0;
     transform: translateY(6px);
@@ -128,44 +294,22 @@ body {
   }
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-yellow-deep);
-  outline-offset: 2px;
+@keyframes tgn-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.32;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
 }
 
-@media (max-width: 520px) {
-  /* Sits beside the mark at the start of the header — top-left in English,
-   top-right once the page flips to RTL, which is the same corner to a Persian
-   reader. */
-.newchat {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--color-mist-strong);
-  background: var(--color-panel);
-  color: var(--color-ink);
-  border-radius: 999px;
-  padding: 7px 15px 7px 12px;
-  font-family: var(--font-display);
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.newchat:hover {
-  border-color: var(--color-yellow-deep);
-  background: var(--color-mist);
-}
-
-.newchat__plus {
-  font-size: 1.05rem;
-  line-height: 1;
-  color: var(--color-yellow-deep);
-}
-
-.brand__title {
-    font-size: 0.86rem;
+@media (max-width: 600px) {
+  :root {
+    --gutter: 16px;
   }
 }
 
@@ -177,82 +321,5 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-/* Sign-in lives at the far end of the header — always available, not buried
-   in a form the visitor has to summon first. */
-.page__header-end {
-  margin-inline-start: auto;
-  display: flex;
-  align-items: center;
-}
-
-.signin__button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: none;
-  border-radius: 999px;
-  background: #2aabee;
-  color: #fff;
-  font-family: var(--font-display);
-  font-size: 0.84rem;
-  font-weight: 600;
-  padding: 8px 16px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.signin__button:not(:disabled):hover {
-  background: #1d97d7;
-}
-
-.signin__button:disabled {
-  opacity: 0.6;
-  cursor: progress;
-}
-
-.signin--on {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px 6px 12px;
-  border: 1px solid var(--color-mist-strong);
-  border-radius: 999px;
-  background: var(--color-panel);
-  font-size: 0.82rem;
-  color: #2aabee;
-}
-
-.signin__who {
-  font-weight: 600;
-  color: var(--color-ink);
-  max-width: 16ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.signin__out {
-  border: none;
-  background: none;
-  color: var(--color-ink-soft);
-  font-family: var(--font-display);
-  font-size: 0.78rem;
-  padding: 2px 8px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.signin__out:hover {
-  color: var(--color-danger);
-  background: var(--color-mist);
-}
-
-@media (max-width: 640px) {
-  /* Keep the identity, drop the label — the header gets tight fast. */
-  .signin__who {
-    max-width: 10ch;
   }
 }

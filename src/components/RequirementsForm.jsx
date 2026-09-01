@@ -18,6 +18,7 @@ import {
 } from "../../shared/questionModules.js";
 import { errorMessage, useI18n } from "../i18n.js";
 import { contactFromUser, useSession } from "../session.js";
+import { PlaneGlyph } from "./Icons.jsx";
 import TelegramLogin from "./TelegramLogin.jsx";
 import "./RequirementsForm.css";
 
@@ -216,8 +217,8 @@ export default function RequirementsForm({
           aria-expanded={open}
           aria-controls="reqform-details"
         >
-          <span className={`reqform__chevron${open ? " reqform__chevron--open" : ""}`} aria-hidden="true">
-            ›
+          <span className="reqform__toggle" aria-hidden="true">
+            {open ? "−" : "+"}
           </span>
           {open ? t("detailsClose") : t("detailsOpen")}
           <span className="reqform__optional">{t("detailsOptional")}</span>
@@ -279,7 +280,8 @@ export default function RequirementsForm({
             {t(submitError)}
           </p>
         )}
-        <button type="submit" className="reqform__submit" disabled={submitting}>
+        <button type="submit" className="pill reqform__submit" disabled={submitting}>
+          <PlaneGlyph />
           {submitting ? t("submitting") : t("submit")}
         </button>
       </footer>
