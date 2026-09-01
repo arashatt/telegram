@@ -304,6 +304,7 @@ src/components/
   BotMark.jsx          animated hero mark
   HubDiagram.jsx       animated how-it-works diagram
   Icons.jsx            inline SVG glyphs
+  CodeFilm.jsx         looping film of the Worker build (landing)
 worker/
   index.js             routes
   intake.js            prompts, JSON extraction, sanitising

@@ -440,3 +440,36 @@
     padding: 16px;
   }
 }
+
+/* ---- code film ----
+   A deliberate exception to the token rule: this is a fixed dark artifact, the
+   way an embedded screen recording is, and re-theming a code editor to a light
+   page would look wrong. Its accent still follows --tg-blue. */
+.film__inner {
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 8px var(--gutter) 56px;
+}
+
+.film__title {
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.film__body {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+  max-width: 58ch;
+  margin: 0 0 22px;
+}
+
+/* Below ~720px the 17px code is unreadable, per the handoff's own note. */
+@media (max-width: 720px) {
+  .film {
+    display: none;
+  }
+}

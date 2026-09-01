@@ -49,6 +49,9 @@ export const translations = {
     trustHostingTitle: "We host it, or you do",
     trustHostingBody: "Undecided is a fine answer — the form defaults to it.",
 
+    filmTitle: "What we actually build",
+    filmBody:
+      "The Worker behind this page: rate limiting, the intake prompt, and the brief that lands in your team's chat.",
     howTitle: "How the bot works once it is live",
     howBody:
       "Your customer only ever sees a Telegram chat. Behind it, the bot is the hub: it reads and writes your records, gives your team an admin panel, and pings your own chat the moment something needs a person.",
@@ -183,6 +186,9 @@ export const translations = {
     trustHostingTitle: "ما میزبانی می‌کنیم، یا خودتان",
     trustHostingBody: "«هنوز تصمیم نگرفته‌ایم» هم پاسخ درستی است — پیش‌فرض فرم همین است.",
 
+    filmTitle: "چیزی که واقعاً می‌سازیم",
+    filmBody:
+      "همان Worker پشت این صفحه: محدودسازی درخواست، پرامپت ثبت سفارش، و درخواستی که در چت تیم شما می‌نشیند.",
     howTitle: "ربات پس از راه‌اندازی چگونه کار می‌کند",
     howBody:
       "مشتری شما فقط یک گفت‌وگوی تلگرامی می‌بیند. پشت آن، ربات نقش هسته را دارد: اطلاعات شما را می‌خواند و می‌نویسد، به تیمتان پنل مدیریت می‌دهد، و هر وقت کاری به یک انسان نیاز داشت به چت خودتان خبر می‌دهد.",

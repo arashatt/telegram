@@ -1,5 +1,6 @@
 import { useI18n } from "../i18n.js";
 import BotMark from "./BotMark.jsx";
+import CodeFilm from "./CodeFilm.jsx";
 import HubDiagram from "./HubDiagram.jsx";
 import { CheckIcon, PlaneGlyph } from "./Icons.jsx";
 import "./Landing.css";
@@ -9,7 +10,7 @@ import "./Landing.css";
    HOSTING_OPTIONS, and the menus/database/scheduled features) — if those
    change in shared/formSchema.js, this copy should change with them. */
 export default function Landing({ children }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   const trust = [
     ["trustTimelineKicker", "trustTimelineTitle", "trustTimelineBody"],
@@ -47,6 +48,16 @@ export default function Landing({ children }) {
             <p className="trust__body">{t(body)}</p>
           </article>
         ))}
+      </section>
+
+      {/* The film's caption track is English only, so it is shown only on the
+          English page rather than captioning a Persian one in English. */}
+      <section className="film">
+        <div className="film__inner">
+          <h2 className="film__title">{t("filmTitle")}</h2>
+          <p className="film__body">{t("filmBody")}</p>
+          <CodeFilm captions={lang === "en"} pauseOffscreen />
+        </div>
       </section>
 
       <section className="how" id="how">
