@@ -107,6 +107,13 @@ the Latin count). One-way, never persisted, no button.
 the entire point: the RTL/LTR reflow is never seen, so no separate page fade
 is needed.
 
+## The one tokenless surface
+
+`CodeFilm.jsx` is a fixed dark artifact — a code editor, the way an embedded
+screen recording is — and re-theming it to a light page would look wrong. It
+carries its own palette on purpose. Its accent still follows `--tg-blue`, and
+it is the only exception; do not treat it as licence for a second one.
+
 ## What not to do
 
 - No second styling system. Restyle by changing tokens and the existing
