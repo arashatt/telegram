@@ -4,6 +4,12 @@ import {
   TEXT_FIELDS,
   emptyForm,
 } from "../shared/formSchema.js";
+import {
+  MAX_MODULES,
+  MAX_QUESTIONS,
+  MODULES,
+  MODULE_IDS,
+} from "../shared/questionModules.js";
 
 export const MAX_TRANSCRIPT_MESSAGES = 24;
 export const MAX_MESSAGE_CHARS = 4000;
@@ -60,6 +66,12 @@ export function extractionMessages(text, lang) {
         }, in their voice, keeping every detail they gave.`,
         "Tidy the wording and fix obvious typos, but never invent a feature, platform, budget or deadline they did not mention.",
         '"features" is an array of the listed values.',
+        `"modules" is an array of at most ${MAX_MODULES} ids naming the topics worth asking this visitor about, chosen from: ${MODULE_IDS.map(
+          (id) => `${id} (${MODULES[id].en})`
+        ).join("; ")}. Pick only what their description actually calls for, most relevant first, and return [] if none fit.`,
+        `"questions" is an array of at most ${MAX_QUESTIONS} short follow-up questions to ask them, in ${
+          lang === "fa" ? "Persian" : "English"
+        } — only for important things their description leaves open that the modules above do not already cover. Each must be one plain sentence ending in a question mark, answerable in a line or two. Return [] rather than padding.`,
         "Omit any key the text does not support. Never guess a value that is not implied by the text.",
       ].join(" "),
     },

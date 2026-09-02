@@ -8,6 +8,7 @@
 import {
   codeChallenge,
   exchangeCode,
+  fetchUserInfo,
   getDiscovery,
   issuerFor,
   randomToken,
@@ -26,13 +27,29 @@ import {
   sealCookie,
 } from "./session.js";
 
-const SCOPE = "openid";
+/* "openid" alone yields only `sub` — an id and nothing else. "profile" carries
+   name, username and photo; "phone" carries the number, which Telegram asks
+   the visitor to consent to separately and which they may decline. Every claim
+   is optional downstream, so a refusal still signs them in.
+   "telegram:bot_access" lets the bot behind this OIDC client open a direct
+   message with the visitor afterwards — bots cannot start a conversation
+   otherwise. Only worth requesting if something actually sends that message;
+   see TELEGRAM_LOGIN_BOT_TOKEN.
+   TELEGRAM_OIDC_SCOPE replaces this wholesale — trim it if you would rather
+   not ask for a permission you are not using. */
+const SCOPE = "openid profile phone telegram:bot_access";
 
 /* Public — it travels in the authorization URL, so it is a code default rather
    than a secret. Override it from the dashboard to point at a different app. */
 const DEFAULT_CLIENT_ID = "8928298590";
 
 export const clientId = (env) => env?.TELEGRAM_CLIENT_ID || DEFAULT_CLIENT_ID;
+
+/* Keeps whatever the id_token already told us, so a UserInfo top-up can only
+   fill gaps and never overwrite a verified value. */
+function pickFilled(user) {
+  return Object.fromEntries(Object.entries(user).filter(([, value]) => value));
+}
 
 /* Only the secret gates sign-in: without it the exchange cannot happen, so the
    button is not offered at all. */
@@ -160,8 +177,32 @@ export async function handleAuthCallback(request, env) {
       nonce: tx.nonce,
     });
 
-    const user = userFromClaims(claims);
+    let user = userFromClaims(claims);
     if (!user.id) return fail("id_token had no subject");
+
+    // Names the claims that came back, never their values — enough to tell
+    // from `wrangler tail` whether the requested scope actually granted
+    // profile data.
+    console.log("Telegram OIDC claims received:", Object.keys(claims).sort().join(", "));
+
+    /* Some providers return only `sub` in the id_token and keep the rest at
+       the UserInfo endpoint. Top up from there when the profile is thin. */
+    if ((!user.username || !user.firstName) && discovery.userinfo_endpoint && tokens.access_token) {
+      try {
+        const extra = await fetchUserInfo(discovery.userinfo_endpoint, tokens.access_token);
+        // The spec requires this check: a UserInfo response for a different
+        // subject must never be merged onto this session.
+        if (String(extra.sub ?? "") === user.id) {
+          user = { ...userFromClaims({ ...extra, sub: user.id }), ...pickFilled(user) };
+          console.log("Telegram OIDC UserInfo claims:", Object.keys(extra).sort().join(", "));
+        } else {
+          console.error("UserInfo subject did not match the id_token; ignoring it");
+        }
+      } catch (err) {
+        // A thin profile is still a valid sign-in.
+        console.error("UserInfo lookup failed:", err.message);
+      }
+    }
 
     const session = await sealCookie(
       env.TELEGRAM_CLIENT_SECRET,

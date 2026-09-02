@@ -1,4 +1,9 @@
 import { CHOICE_FIELDS, labelFor } from "../shared/formSchema.js";
+import {
+  labelFor as questionLabel,
+  moduleFields,
+  optionLabel,
+} from "../shared/questionModules.js";
 
 const TELEGRAM_API = "https://api.telegram.org";
 /* Telegram caps sendMessage at 4096 characters; leave room for the part
@@ -77,6 +82,34 @@ export function buildBriefLines(submission) {
     lines.push("");
   }
 
+  /* The questions this visitor was actually asked, with their answers. Kept
+     in its own section because the fields differ from brief to brief. */
+  const tailored = [];
+  for (const field of moduleFields(submission.modules ?? [])) {
+    const value = (submission.answers ?? {})[field.key];
+    if (value == null || value === "" || (Array.isArray(value) && !value.length)) continue;
+    const rendered = Array.isArray(value)
+      ? value.map((v) => optionLabel(field, v, lang)).join(lang === "fa" ? "، " : ", ")
+      : field.type === "select"
+        ? optionLabel(field, value, lang)
+        : value;
+    tailored.push([questionLabel(field, lang), rendered]);
+  }
+  for (const question of submission.questions ?? []) {
+    const value = (submission.answers ?? {})[question.key];
+    if (value) tailored.push([question.label, value]);
+  }
+
+  if (tailored.length) {
+    lines.push(
+      `🎯 <b>${escapeHtml(lang === "fa" ? "پرسش‌های اختصاصی" : "Tailored questions")}</b>`
+    );
+    for (const [question, answer] of tailored) {
+      lines.push(`• <b>${escapeHtml(question)}</b> ${escapeHtml(answer)}`);
+    }
+    lines.push("");
+  }
+
   /* A verified identity is worth more than the typed-in contact fields, so it
      is called out separately rather than merged into them. */
   if (verified) {
@@ -92,6 +125,9 @@ export function buildBriefLines(submission) {
         verified.id
       )}</code>)`
     );
+    if (verified.phone) {
+      lines.push(`• ${escapeHtml(lang === "fa" ? "تلفن" : "Phone")}: ${escapeHtml(verified.phone)}`);
+    }
     lines.push("");
   }
 
@@ -136,18 +172,16 @@ export function chunkLines(lines, limit = CHUNK_LIMIT) {
   return chunks.length ? chunks : ["(empty)"];
 }
 
-async function sendMessage(env, text) {
-  const res = await fetch(`${TELEGRAM_API}/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+async function post(token, chatId, text, extra = {}) {
+  const res = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      chat_id: env.TELEGRAM_CHAT_ID,
+      chat_id: chatId,
       text,
       parse_mode: "HTML",
       disable_web_page_preview: true,
-      ...(env.TELEGRAM_TOPIC_ID
-        ? { message_thread_id: Number(env.TELEGRAM_TOPIC_ID) }
-        : {}),
+      ...extra,
     }),
   });
 
@@ -158,6 +192,50 @@ async function sendMessage(env, text) {
     );
   }
   return body;
+}
+
+const sendMessage = (env, text) =>
+  post(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_CHAT_ID, text, {
+    ...(env.TELEGRAM_TOPIC_ID ? { message_thread_id: Number(env.TELEGRAM_TOPIC_ID) } : {}),
+  });
+
+export function canMessageVisitor(env) {
+  return Boolean(env?.TELEGRAM_LOGIN_BOT_TOKEN);
+}
+
+/* A confirmation to the visitor's own Telegram, which the telegram:bot_access
+   scope is what makes possible — bots cannot open a conversation otherwise.
+
+   It must come from the bot behind the OIDC client, not the one that delivers
+   briefs: those are usually different bots, and only the login bot was granted
+   access to this person. Best-effort by design; the brief is already delivered
+   and a failed courtesy message must not turn a successful submission into an
+   error. */
+export async function notifyVisitor(env, submission) {
+  const token = env.TELEGRAM_LOGIN_BOT_TOKEN;
+  const userId = submission?.verified?.id;
+  if (!token || !userId) return { sent: false, reason: "not configured" };
+
+  const fa = submission.lang === "fa";
+  const text = [
+    `<b>${escapeHtml(fa ? "درخواست شما ثبت شد" : "Your brief has been received")}</b>`,
+    "",
+    escapeHtml(
+      fa
+        ? "درخواست ساخت ربات تلگرام شما به تیم ما رسید و به‌زودی همین‌جا پاسخ می‌دهیم."
+        : "Your Telegram bot brief reached our team. We will reply here shortly."
+    ),
+    "",
+    `<code>${escapeHtml(submission.reference ?? "")}</code>`,
+  ].join("\n");
+
+  try {
+    await post(token, userId, text);
+    return { sent: true };
+  } catch (err) {
+    console.error("Could not message the visitor:", err.message);
+    return { sent: false, reason: err.message };
+  }
 }
 
 export function isTelegramConfigured(env) {

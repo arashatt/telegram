@@ -209,10 +209,25 @@ export function userFromClaims(claims) {
   const first = claims.given_name ?? claims.first_name ?? "";
   const last = claims.family_name ?? claims.last_name ?? "";
   const full = claims.name ?? [first, last].filter(Boolean).join(" ");
-  return {
+  const user = {
     id: String(claims.sub ?? ""),
     username: String(claims.preferred_username ?? claims.username ?? "").replace(/^@/, ""),
     firstName: String(first || full || ""),
     lastName: String(last || ""),
   };
+  if (claims.picture) user.photoUrl = String(claims.picture).slice(0, 500);
+  if (claims.phone_number) user.phone = String(claims.phone_number).slice(0, 40);
+  return user;
+}
+
+/* The UserInfo endpoint, for providers that keep profile claims out of the
+   id_token. Purely a top-up: the id_token is still what proves who this is. */
+export async function fetchUserInfo(userinfoEndpoint, accessToken, fetchImpl = fetch) {
+  const res = await fetchImpl(userinfoEndpoint, {
+    headers: { authorization: `Bearer ${accessToken}`, accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`UserInfo request failed (${res.status})`);
+  const claims = await res.json();
+  if (!claims || typeof claims !== "object") throw new Error("UserInfo returned no object");
+  return claims;
 }

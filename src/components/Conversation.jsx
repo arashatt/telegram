@@ -3,7 +3,7 @@ import { useI18n } from "../i18n.js";
 import { looksPersian } from "../lang.js";
 import RequirementsForm from "./RequirementsForm.jsx";
 import Receipt from "./Receipt.jsx";
-import { Mark, TypingMark } from "./Brand.jsx";
+import { BubbleMark, PlaneGlyph } from "./Icons.jsx";
 import "./Conversation.css";
 
 let nextId = 0;
@@ -62,12 +62,18 @@ export default function Conversation() {
   const inputRef = useRef(null);
   const lastUserMessage = useRef("");
 
+  /* Scrolls the chat card's own scroller, not the page. scrollIntoView would
+     drag the whole landing page along with it. */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    const scroller = bottomRef.current?.parentElement;
+    if (scroller) scroller.scrollTop = scroller.scrollHeight;
   }, [items, streamingText, busy]);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    // preventScroll matters now that a landing page sits above the chat:
+    // a plain focus() scrolls the composer into view on load and the visitor
+    // never sees the hero.
+    inputRef.current?.focus({ preventScroll: true });
   }, []);
 
   const transcript = useCallback(
@@ -89,11 +95,15 @@ export default function Conversation() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text, lang }),
         });
-        if (!res.ok) return {};
+        if (!res.ok) return { prefill: {}, modules: [], questions: [] };
         const data = await res.json();
-        return data.prefill ?? {};
+        return {
+          prefill: data.prefill ?? {},
+          modules: data.modules ?? [],
+          questions: data.questions ?? [],
+        };
       } catch {
-        return {};
+        return { prefill: {}, modules: [], questions: [] };
       }
     },
     [lang]
@@ -147,7 +157,7 @@ export default function Conversation() {
         if (!res.ok || !res.body) throw new Error(`Request failed (${res.status})`);
 
         const reply = await readStream(res, setStreamingText);
-        const prefill = prefillPromise ? await prefillPromise : null;
+        const plan = prefillPromise ? await prefillPromise : null;
 
         setItems((prev) => {
           const next = [...prev];
@@ -159,7 +169,15 @@ export default function Conversation() {
               content: reply.trim(),
             });
           }
-          if (prefill) next.push({ id: makeId(), type: "form", prefill });
+          if (plan) {
+            next.push({
+              id: makeId(),
+              type: "form",
+              prefill: plan.prefill,
+              modules: plan.modules,
+              questions: plan.questions,
+            });
+          }
           return next;
         });
       } catch {
@@ -195,6 +213,9 @@ export default function Conversation() {
         lang,
         transcript: transcript(),
         website: extras.website ?? "",
+        modules: extras.modules ?? [],
+        questions: extras.questions ?? [],
+        answers: extras.answers ?? {},
       }),
       credentials: "same-origin",
     });
@@ -206,11 +227,19 @@ export default function Conversation() {
     setItems((prev) =>
       prev.map((item) =>
         item.type === "form"
-          ? { id: item.id, type: "receipt", form, reference: data.reference }
+          ? {
+              id: item.id,
+              type: "receipt",
+              form,
+              reference: data.reference,
+              modules: item.modules,
+              questions: item.questions,
+              answers: extras.answers ?? {},
+            }
           : item
       )
     );
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   }
 
   const showForm = items.some((item) => item.type === "form");
@@ -218,6 +247,16 @@ export default function Conversation() {
 
   return (
     <div className="conversation">
+      <header className="chathead">
+        <span className="chathead__disc">
+          <BubbleMark size={20} />
+        </span>
+        <span className="chathead__meta">
+          <span className="chathead__name">{t("assistant")}</span>
+          <span className="chathead__status">{busy ? t("typingStatus") : t("online")}</span>
+        </span>
+      </header>
+
       <div className="conversation__scroll">
         <ol className="conversation__stream">
           <Bubble role="assistant">{t("greeting")}</Bubble>
@@ -234,20 +273,37 @@ export default function Conversation() {
               return (
                 <li key={item.id} className="conversation__card">
                   <p className="conversation__card-intro">{t("formIntro")}</p>
-                  <RequirementsForm prefill={item.prefill} onSubmit={submitRequirements} />
+                  <RequirementsForm
+                    prefill={item.prefill}
+                    modules={item.modules}
+                    questions={item.questions}
+                    onSubmit={submitRequirements}
+                  />
                 </li>
               );
             }
             return (
               <li key={item.id} className="conversation__card">
-                <Receipt form={item.form} reference={item.reference} />
+                <Receipt
+                  form={item.form}
+                  reference={item.reference}
+                  modules={item.modules}
+                  questions={item.questions}
+                  answers={item.answers}
+                />
               </li>
             );
           })}
 
           {busy && (
             <Bubble role="assistant" live>
-              {streamingText || <TypingMark label={t("thinking")} />}
+              {streamingText || (
+                <span className="typing" role="status" aria-label={t("thinking")}>
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              )}
             </Bubble>
           )}
 
@@ -282,8 +338,9 @@ export default function Conversation() {
           type="submit"
           className="composer__send"
           disabled={composerDisabled || !input.trim()}
+          aria-label={t("send")}
         >
-          {busy ? t("sending") : t("send")}
+          <PlaneGlyph size={20} />
         </button>
       </form>
     </div>
@@ -293,20 +350,13 @@ export default function Conversation() {
 function Bubble({ role, children, live = false }) {
   const { t } = useI18n();
   return (
-    <li className={`bubble bubble--${role}`}>
-      {role === "assistant" && (
-        <span className="bubble__avatar" aria-hidden="true">
-          <Mark size={20} filled />
-        </span>
-      )}
-      <div
-        className="bubble__body"
-        dir="auto"
-        aria-live={live ? "polite" : undefined}
-        aria-label={role === "assistant" ? t("assistant") : t("you")}
-      >
-        {children}
-      </div>
+    <li
+      className={`bubble bubble--${role}`}
+      dir="auto"
+      aria-live={live ? "polite" : undefined}
+      aria-label={role === "assistant" ? t("assistant") : t("you")}
+    >
+      {children}
     </li>
   );
 }

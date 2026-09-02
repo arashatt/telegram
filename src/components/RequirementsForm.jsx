@@ -11,8 +11,14 @@ import {
   emptyForm,
   validateForm,
 } from "../../shared/formSchema.js";
+import {
+  MODULES,
+  labelFor as questionLabel,
+  moduleFields,
+} from "../../shared/questionModules.js";
 import { errorMessage, useI18n } from "../i18n.js";
 import { contactFromUser, useSession } from "../session.js";
+import { PlaneGlyph } from "./Icons.jsx";
 import TelegramLogin from "./TelegramLogin.jsx";
 import "./RequirementsForm.css";
 
@@ -32,7 +38,12 @@ const DETAIL_FIELDS = [
   "notes",
 ];
 
-export default function RequirementsForm({ prefill = {}, onSubmit }) {
+export default function RequirementsForm({
+  prefill = {},
+  modules = [],
+  questions = [],
+  onSubmit,
+}) {
   const { t, lang } = useI18n();
   const session = useSession();
   // Read at mount so a visitor who signed in from the header before opening
@@ -46,6 +57,9 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
   const [submitError, setSubmitError] = useState(null);
   const [open, setOpen] = useState(false);
   const [invalidTick, setInvalidTick] = useState(0);
+  // Answers to the questions chosen for this visitor. Kept apart from `form`
+  // because the fields differ from one brief to the next.
+  const [answers, setAnswers] = useState({});
   const honeypot = useRef(null);
   const formRef = useRef(null);
 
@@ -110,7 +124,12 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await onSubmit(form, { website: honeypot.current?.value ?? "" });
+      await onSubmit(form, {
+        website: honeypot.current?.value ?? "",
+        modules,
+        questions,
+        answers,
+      });
     } catch (err) {
       setSubmitError(err?.message === "rate_limited" ? "rateLimited" : "submitFailed");
       setSubmitting(false);
@@ -149,6 +168,47 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
         )}
       </fieldset>
 
+      {(moduleFields(modules).length > 0 || questions.length > 0) && (
+        <fieldset className="reqform__section reqform__section--tailored">
+          <legend>{t("sectionTailored")}</legend>
+          <p className="reqform__hint">{t("tailoredNote")}</p>
+
+          {modules.map((id) =>
+            (MODULES[id]?.fields ?? []).map((field) => (
+              <TailoredField
+                key={field.key}
+                field={field}
+                lang={lang}
+                value={answers[field.key]}
+                onChange={(value) =>
+                  setAnswers((prev) => ({ ...prev, [field.key]: value }))
+                }
+                t={t}
+              />
+            ))
+          )}
+
+          {questions.map((question) => (
+            <div className="field" key={question.key}>
+              <label className="field__label" htmlFor={question.key}>
+                {question.label}
+              </label>
+              <textarea
+                id={question.key}
+                className="field__control"
+                rows={2}
+                dir="auto"
+                maxLength={600}
+                value={answers[question.key] ?? ""}
+                onChange={(event) =>
+                  setAnswers((prev) => ({ ...prev, [question.key]: event.target.value }))
+                }
+              />
+            </div>
+          ))}
+        </fieldset>
+      )}
+
       <div className="reqform__more">
         <button
           type="button"
@@ -157,8 +217,8 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
           aria-expanded={open}
           aria-controls="reqform-details"
         >
-          <span className={`reqform__chevron${open ? " reqform__chevron--open" : ""}`} aria-hidden="true">
-            ›
+          <span className="reqform__toggle" aria-hidden="true">
+            {open ? "−" : "+"}
           </span>
           {open ? t("detailsClose") : t("detailsOpen")}
           <span className="reqform__optional">{t("detailsOptional")}</span>
@@ -220,11 +280,89 @@ export default function RequirementsForm({ prefill = {}, onSubmit }) {
             {t(submitError)}
           </p>
         )}
-        <button type="submit" className="reqform__submit" disabled={submitting}>
+        <button type="submit" className="pill reqform__submit" disabled={submitting}>
+          <PlaneGlyph />
           {submitting ? t("submitting") : t("submit")}
         </button>
       </footer>
     </form>
+  );
+}
+
+/* Every tailored field is optional — the point is a form that fits, not a
+   longer one to get through. */
+function TailoredField({ field, lang, value, onChange, t }) {
+  const label = questionLabel(field, lang);
+
+  if (field.type === "select") {
+    return (
+      <div className="field">
+        <label className="field__label" htmlFor={field.key}>
+          {label}
+        </label>
+        <select
+          id={field.key}
+          className="field__control"
+          value={value ?? ""}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          <option value="">{t("choosePlaceholder")}</option>
+          {field.options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {lang === "fa" ? option.fa : option.en}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  if (field.type === "checks") {
+    const selected = Array.isArray(value) ? value : [];
+    return (
+      <fieldset className="field field--checks">
+        <legend className="field__label">{label}</legend>
+        <div className="checks">
+          {field.options.map((option) => {
+            const checked = selected.includes(option.value);
+            return (
+              <label key={option.value} className={`check${checked ? " check--on" : ""}`}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() =>
+                    onChange(
+                      checked
+                        ? selected.filter((v) => v !== option.value)
+                        : [...selected, option.value]
+                    )
+                  }
+                />
+                <span>{lang === "fa" ? option.fa : option.en}</span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+    );
+  }
+
+  const Tag = field.type === "textarea" ? "textarea" : "input";
+  return (
+    <div className="field">
+      <label className="field__label" htmlFor={field.key}>
+        {label}
+      </label>
+      <Tag
+        id={field.key}
+        className="field__control"
+        dir="auto"
+        rows={field.type === "textarea" ? 2 : undefined}
+        maxLength={600}
+        value={value ?? ""}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </div>
   );
 }
 

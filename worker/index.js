@@ -1,5 +1,10 @@
 import { LIMITS, SUMMARY_MIN, validateForm } from "../shared/formSchema.js";
 import {
+  sanitizeAnswers,
+  sanitizeModules,
+  sanitizeQuestions,
+} from "../shared/questionModules.js";
+import {
   currentUser,
   handleAuthCallback,
   handleAuthLogout,
@@ -9,7 +14,7 @@ import {
   redirectUri,
 } from "./auth.js";
 import { clientKey, overLimit } from "./ratelimit.js";
-import { deliverBrief, isTelegramConfigured } from "./telegram.js";
+import { canMessageVisitor, deliverBrief, isTelegramConfigured, notifyVisitor } from "./telegram.js";
 import {
   chatSystemPrompt,
   extractionMessages,
@@ -125,10 +130,14 @@ async function handleExtract(request, env) {
       max_tokens: 400,
     });
     const parsed = parseJsonObject(result?.response ?? "");
-    return json({ prefill: withSummaryFallback(parsed ? sanitizePrefill(parsed) : {}, text) });
+    return json({
+      prefill: withSummaryFallback(parsed ? sanitizePrefill(parsed) : {}, text),
+      modules: sanitizeModules(parsed?.modules),
+      questions: sanitizeQuestions(parsed?.questions),
+    });
   } catch (err) {
     console.error("Prefill extraction failed:", err.message);
-    return json({ prefill: withSummaryFallback({}, text) });
+    return json({ prefill: withSummaryFallback({}, text), modules: [], questions: [] });
   }
 }
 
@@ -147,6 +156,14 @@ async function handleRequirements(request, env) {
 
   const lang = normalizeLang(body?.lang);
   const form = sanitizeForm(body?.form);
+
+  /* The tailored part of the form is rebuilt from the plan the browser sends
+     back, then answers are filtered against it — so a crafted request cannot
+     smuggle in fields that were never offered. */
+  const modules = sanitizeModules(body?.modules);
+  const questions = sanitizeQuestions(body?.questions);
+  const answers = sanitizeAnswers(body?.answers, modules, questions);
+
   const errors = validateForm(form);
   if (Object.keys(errors).length) return json({ error: "invalid_form", errors }, 422);
 
@@ -168,6 +185,9 @@ async function handleRequirements(request, env) {
     reference,
     lang,
     form,
+    modules,
+    questions,
+    answers,
     verified,
     transcript: sanitizeTranscript(body?.transcript),
     meta: {
@@ -180,7 +200,12 @@ async function handleRequirements(request, env) {
   const { results } = await deliverBrief(env, submission);
   if (!results.some((r) => r.ok)) return json({ error: "delivery_failed" }, 502);
 
-  return json({ ok: true, reference });
+  // Courtesy note to the visitor's own Telegram. Awaited so a failure is
+  // logged, but never allowed to fail the submission — the brief is already
+  // delivered by this point.
+  const notified = await notifyVisitor(env, submission);
+
+  return json({ ok: true, reference, notified: notified.sent });
 }
 
 /* Reports which runtime settings the Worker can actually see, so a
@@ -203,6 +228,7 @@ function handleHealth(request, env) {
     telegramDelivery: isTelegramConfigured(env),
     telegramSignIn: isAuthConfigured(env),
     webhookMirror: Boolean(env.REQUIREMENTS_WEBHOOK_URL),
+    visitorDm: canMessageVisitor(env),
     rateLimiters: Boolean(env.CHAT_LIMIT && env.SUBMIT_LIMIT && env.AUTH_LIMIT),
   };
 

@@ -1,0 +1,19 @@
+/* CodeFilm — 16:9 box that scales the 1600x900 stage to its own width */
+.code-film {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #080d13;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  contain: paint;
+}
+
+.code-film__stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
