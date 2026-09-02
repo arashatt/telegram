@@ -13,6 +13,7 @@ import {
   isAuthConfigured,
   redirectUri,
 } from "./auth.js";
+import { claudeModel, extract as claudeExtract, hasClaude, streamChat } from "./claude.js";
 import { clientKey, overLimit } from "./ratelimit.js";
 import { canMessageVisitor, deliverBrief, isTelegramConfigured, notifyVisitor } from "./telegram.js";
 import {
@@ -33,11 +34,16 @@ import {
 /* Bumped whenever something ships that is hard to confirm from the outside.
    /api/health echoes it, so "is the deploy actually live?" is one request
    rather than an inference from symptoms. */
-const BUILD = "2026-08-29-run-worker-first+critical-css";
+const BUILD = "2026-09-02-booking-demo+claude-intake";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
 const extractModel = (env) => env.EXTRACT_MODEL || env.CHAT_MODEL || DEFAULT_MODEL;
+
+/* Which model actually answers. Claude when a key is configured, the Workers
+   AI binding otherwise — and the binding stays the fallback either way, so a
+   revoked key degrades the replies rather than the site. */
+const servingModel = (env) => (hasClaude(env) ? claudeModel(env) : chatModel(env));
 const MAX_BODY_BYTES = 64 * 1024;
 
 const CORS = {
@@ -83,9 +89,34 @@ async function handleChatStream(request, env) {
   const messages = sanitizeTranscript(body?.messages);
   if (messages.length === 0) return json({ error: "no_messages" }, 400);
 
+  const submitted = Boolean(body?.formSubmitted);
+  const sse = (stream) =>
+    new Response(stream, {
+      headers: {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache",
+        ...CORS,
+      },
+    });
+
+  if (hasClaude(env)) {
+    try {
+      return sse(
+        await streamChat(env, {
+          system: chatSystemPrompt(lang, submitted, { reasoning: true }),
+          messages,
+        })
+      );
+    } catch (err) {
+      // Nothing has been sent to the visitor yet, so the Workers AI binding
+      // can still answer this turn.
+      console.error("Claude chat unavailable, using Workers AI:", err.message);
+    }
+  }
+
   const stream = await env.AI.run(chatModel(env), {
     messages: [
-      { role: "system", content: chatSystemPrompt(lang, Boolean(body?.formSubmitted)) },
+      { role: "system", content: chatSystemPrompt(lang, submitted) },
       ...messages,
     ],
     max_tokens: 400,
@@ -94,13 +125,7 @@ async function handleChatStream(request, env) {
 
   // env.AI.run with stream:true already returns an SSE-formatted
   // ReadableStream — pass it straight through.
-  return new Response(stream, {
-    headers: {
-      "content-type": "text/event-stream",
-      "cache-control": "no-cache",
-      ...CORS,
-    },
-  });
+  return sse(stream);
 }
 
 /* The visitor already said what they want, so "What should the bot do?" must
@@ -124,12 +149,25 @@ async function handleExtract(request, env) {
   const text = typeof body?.text === "string" ? body.text.trim().slice(0, 4000) : "";
   if (!text) return json({ prefill: {} });
 
+  const prompt = extractionMessages(text, lang);
+
+  /* Same prompt, same parser, same sanitisers for both models — only the one
+     that answers differs, so a form built by Claude and a form built by
+     Workers AI are assembled identically. */
+  async function raw() {
+    if (hasClaude(env)) {
+      try {
+        return await claudeExtract(env, prompt);
+      } catch (err) {
+        console.error("Claude extraction unavailable, using Workers AI:", err.message);
+      }
+    }
+    const result = await env.AI.run(extractModel(env), { messages: prompt, max_tokens: 400 });
+    return result?.response ?? "";
+  }
+
   try {
-    const result = await env.AI.run(extractModel(env), {
-      messages: extractionMessages(text, lang),
-      max_tokens: 400,
-    });
-    const parsed = parseJsonObject(result?.response ?? "");
+    const parsed = parseJsonObject(await raw());
     return json({
       prefill: withSummaryFallback(parsed ? sanitizePrefill(parsed) : {}, text),
       modules: sanitizeModules(parsed?.modules),
@@ -225,6 +263,7 @@ function handleHealth(request, env) {
     TELEGRAM_BOT_TOKEN: Boolean(env.TELEGRAM_BOT_TOKEN),
     TELEGRAM_CHAT_ID: Boolean(env.TELEGRAM_CHAT_ID),
     TELEGRAM_CLIENT_SECRET: Boolean(env.TELEGRAM_CLIENT_SECRET),
+    claude: hasClaude(env),
     telegramDelivery: isTelegramConfigured(env),
     telegramSignIn: isAuthConfigured(env),
     webhookMirror: Boolean(env.REQUIREMENTS_WEBHOOK_URL),
@@ -265,7 +304,11 @@ function handleHealth(request, env) {
         ? `Set ${missing.join(" and ")} in Cloudflare > Workers & Pages > your Worker > ` +
           "Settings > Variables and Secrets, then redeploy. Names are case-sensitive."
         : undefined,
-      model: chatModel(env),
+      model: servingModel(env),
+      // Which binding is answering, so a key that is set but rejected is
+      // still visible as "claude: true" with Workers AI replies in the logs.
+      chatProvider: hasClaude(env) ? "claude" : "workers-ai",
+      fallbackModel: chatModel(env),
     },
     missing.length ? 503 : 200
   );

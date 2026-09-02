@@ -7,7 +7,9 @@ pre-filled from what they just wrote, and the finished brief is delivered to
 the team's Telegram chat.
 
 Built with React + Vite, served from a single Cloudflare Worker that also
-hosts the API and calls Workers AI.
+hosts the API. The assistant runs on Claude when an Anthropic API key is
+configured, and on Workers AI otherwise — see [Choosing a
+model](#choosing-a-model).
 
 ## The flow
 
@@ -62,6 +64,9 @@ redeploy so the new values are picked up.
 | `TELEGRAM_TOPIC_ID` | Text | no | Post into one topic of a forum group. |
 | `TELEGRAM_REDIRECT_URI` | Text | no | Pin the OIDC redirect behind a proxy or custom domain. |
 | `REQUIREMENTS_WEBHOOK_URL` | Text | no | Mirror the raw JSON brief elsewhere. |
+| `ANTHROPIC_API_KEY` | Secret | no | Claude answers the conversation and fills the form when set. Unset means Workers AI, as before. `CLAUDE_API_KEY` is accepted under the same meaning. |
+| `CLAUDE_MODEL` | Text | no | Override the Claude model. Defaults to `claude-opus-5`. |
+| `ANTHROPIC_BASE_URL` | Text | no | Point the SDK at a gateway instead of the API. Unset in normal use. |
 | `CHAT_MODEL` / `EXTRACT_MODEL` | Text | no | Override the Workers AI models. |
 
 `wrangler.jsonc` deliberately declares **no `vars` block**: values there
@@ -79,10 +84,12 @@ value — and returns `503` while anything required is missing:
 
 ```json
 { "ok": true,
-  "checks": { "ai": true, "assets": true, "telegramDelivery": true,
+  "checks": { "ai": true, "assets": true, "claude": true, "telegramDelivery": true,
               "telegramSignIn": true, "webhookMirror": false, "rateLimiters": true },
   "missing": [],
-  "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast" }
+  "chatProvider": "claude",
+  "model": "claude-opus-5",
+  "fallbackModel": "@cf/meta/llama-3.3-70b-instruct-fp8-fast" }
 ```
 
 For local runs, copy `.dev.vars.example` to `.dev.vars` (gitignored).
@@ -321,18 +328,46 @@ and the Worker cannot disagree about what a valid brief is.
 
 ## Choosing a model
 
-`CHAT_MODEL` and `EXTRACT_MODEL` are vars, not constants, because the Workers
-AI catalogue changes faster than this repo. The default is
-`@cf/meta/llama-3.3-70b-instruct-fp8-fast`.
+Two providers, chosen by whether a key is present.
+
+**Claude, when `ANTHROPIC_API_KEY` is set.** It answers the conversation and
+does the extraction that fills the form — the same prompts and the same
+sanitisers as the Workers AI path, so only the quality of the answer changes.
+The default model is `claude-opus-5`; `CLAUDE_MODEL` overrides it.
+
+The key is read from the Worker's environment and used only inside the Worker,
+so it never reaches the browser. Add it in the dashboard as type **Secret**,
+never in `wrangler.jsonc`.
+
+Requests are sent with adaptive thinking left on at `low` effort. Turning
+thinking off is what makes a model leak its internal tags into a visible
+answer; lowering the effort is the cheaper lever and keeps the reply fast.
+`max_tokens` is set well above the three sentences the prompt asks for,
+because the thinking that happens underneath draws on the same budget.
+Server-side refusal fallbacks are enabled, so a request Claude's safety
+classifiers decline is re-run on Anthropic's recommended substitute rather
+than coming back blank.
+
+**Workers AI otherwise — and as the fallback either way.** If Claude is
+unreachable, rate-limited, mis-keyed or declines the turn, the Worker logs why
+and answers from `env.AI` instead. Nothing has been sent to the visitor at that
+point, so the fallback is invisible to them. This is why the site keeps working
+if the key is ever revoked.
+
+`CHAT_MODEL` and `EXTRACT_MODEL` name the Workers AI models. They are vars, not
+constants, because the Workers AI catalogue changes faster than this repo; the
+default is `@cf/meta/llama-3.3-70b-instruct-fp8-fast`.
 
 ```sh
 npx wrangler ai models        # what your account can actually run
 ```
 
-Then set either name in `wrangler.jsonc` under `vars`. They are split because
-extraction wants strict JSON and instruction-following, which is a different
-strength from conversational replies — it is reasonable to point them at
-different models.
+They are split because extraction wants strict JSON and instruction-following,
+which is a different strength from conversational replies — it is reasonable to
+point them at different models.
+
+Either provider costs money per turn, which is what the per-IP rate limits in
+[Abuse and DDoS](#abuse-and-ddos) are protecting.
 
 ## SEO
 

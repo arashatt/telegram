@@ -23,6 +23,7 @@
   //   TELEGRAM_BOT_TOKEN      (secret)  deliver briefs
   //   TELEGRAM_CHAT_ID        (secret)  where briefs land
   //   TELEGRAM_CLIENT_SECRET  (secret)  Telegram sign-in
+  //   ANTHROPIC_API_KEY       (secret)  optional — Claude answers the intake
   // Optional overrides documented in .dev.vars.example.
   // Per-IP caps. Chat and extraction each cost a Workers AI call, so they are
   // the expensive endpoints to protect; submissions are rarer and stricter.

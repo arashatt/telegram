@@ -41,6 +41,20 @@ TELEGRAM_CLIENT_SECRET=your-oidc-client-secret
 # REQUIREMENTS_WEBHOOK_URL=https://example.com/hooks/bot-brief
 # REQUIREMENTS_WEBHOOK_SECRET=sent-as-a-bearer-token
 
-# Workers AI models. `npx wrangler ai models` lists what your account can run.
+# Claude answers the conversation and fills the form when this is set; without
+# it the Worker uses the Workers AI binding, exactly as before. Add it in the
+# dashboard as type "Secret" — it is a real credential and is billed per use.
+# CLAUDE_API_KEY is read under the same meaning if you prefer that name.
+# ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+# Override the Claude model. Defaults to claude-opus-5.
+# CLAUDE_MODEL=claude-opus-5
+
+# Point the SDK at a gateway rather than the API. Unset in normal use.
+# ANTHROPIC_BASE_URL=https://gateway.example.com/anthropic
+
+# Workers AI models — the fallback whenever Claude is unavailable, and the
+# only models used when no Anthropic key is set.
+# `npx wrangler ai models` lists what your account can run.
 # CHAT_MODEL=@cf/meta/llama-3.3-70b-instruct-fp8-fast
 # EXTRACT_MODEL=@cf/meta/llama-3.3-70b-instruct-fp8-fast

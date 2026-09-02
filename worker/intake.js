@@ -23,13 +23,20 @@ const LANGUAGE_RULE = {
    answered once, then the requirements form takes over. The prompt says so
    explicitly, otherwise the model starts its own question-by-question
    interview and duplicates the form. */
-export function chatSystemPrompt(lang, formSubmitted) {
+export function chatSystemPrompt(lang, formSubmitted, { reasoning = false } = {}) {
   const base = [
     "You are the intake assistant for a studio that builds custom Telegram bots.",
     LANGUAGE_RULE[lang] ?? LANGUAGE_RULE.en,
     "Be warm, concrete and brief: at most three short sentences.",
     "Never invent prices, delivery dates or technical guarantees.",
   ];
+
+  /* A reasoning model thinks before it writes, and the visitor is watching an
+     empty bubble while it does. Only worth saying to a model that has the
+     choice. */
+  if (reasoning) {
+    base.push("Latency-sensitive; begin your visible answer immediately.");
+  }
 
   if (formSubmitted) {
     base.push(
