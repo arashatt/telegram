@@ -122,6 +122,12 @@
 }
 
 /* No avatar to clear any more, so no indent. */
+/* The page's header is sticky, so an element scrolled to `start` would sit
+   underneath it. Clears the header plus a little breathing room. */
+.conversation__card--demo {
+  scroll-margin-block-start: 72px;
+}
+
 .conversation__card-intro {
   margin: 6px 0 10px;
   font-size: 14px;

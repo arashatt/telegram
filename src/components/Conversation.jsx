@@ -77,13 +77,30 @@ export default function Conversation() {
 
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const demoRef = useRef(null);
+  const demoSeen = useRef(false);
   const lastUserMessage = useRef("");
 
-  /* Scrolls the chat card's own scroller, not the page. scrollIntoView would
-     drag the whole landing page along with it. */
   useEffect(() => {
+    /* Only moves anything when the stream has a height of its own. At full
+       width the stream grows instead and the document is the scroller, so
+       this is a no-op there rather than the thing keeping the newest message
+       in view. */
     const scroller = bottomRef.current?.parentElement;
     if (scroller) scroller.scrollTop = scroller.scrollHeight;
+
+    /* The demo is the one item in the stream meant to be looked at and
+       touched, and on a phone it is taller than the screen. Without this the
+       visitor is left on its caption with the phone below the fold — a
+       promise that the buttons are live, and no buttons. Once only: after
+       they have seen it, the page is theirs. */
+    if (demoRef.current && !demoSeen.current) {
+      demoSeen.current = true;
+      const still =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      demoRef.current.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" });
+    }
   }, [items, streamingText, busy]);
 
   useEffect(() => {
@@ -307,7 +324,7 @@ export default function Conversation() {
             }
             if (item.type === "demo") {
               return (
-                <li key={item.id} className="conversation__card">
+                <li key={item.id} ref={demoRef} className="conversation__card conversation__card--demo">
                   <p className="conversation__card-intro">{t("demoCaption")}</p>
                   <BookingDemo venue={item.venue} />
                 </li>

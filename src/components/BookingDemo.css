@@ -464,6 +464,17 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 22px;
   }
+
+  /* A fixed 540px screen leaves the keyboard half off a short phone, and the
+     buttons are the point of the demo. The stream is bottom-anchored and
+     clipped, so a shorter screen loses the oldest bubble rather than the
+     controls. svh follows the visible viewport as the browser chrome slides
+     away; the vh line is what a browser without it falls back to, and a
+     browser without either keeps the 540px design height. */
+  .bkd__screen {
+    height: min(540px, 55vh);
+    height: min(540px, 55svh);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
