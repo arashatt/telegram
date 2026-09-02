@@ -92,8 +92,35 @@ export const translations = {
 
     rateLimited: "That's a lot of requests at once — please wait a moment and try again.",
 
-    demoCaption:
+    demoKicker: "Live demo",
+    demoHeading: "Table booking, in chat",
+    demoLead:
       "Try it — the buttons are live. Pick a different time and the bot follows you.",
+    demoBadge: "live demo",
+    demoVenue: "Anar Kitchen",
+    demoVenueCode: "AK",
+    demoBotLabel: "bot",
+    demoComposer: "Message",
+    demoTyping: "Bot is typing",
+    demoGreet1: "Evening. I can hold a table for you tonight.",
+    demoGreet2: "How many of you are coming?",
+    demoGuests: "{n} guests",
+    demoGuestsMany: "5 or more",
+    demoFree: "Tonight, for {who}. These times are still free:",
+    demoConfirmed: "Table confirmed",
+    demoWhere: "Where",
+    demoWhen: "When",
+    demoGuestsLabel: "Guests",
+    demoCode: "Code",
+    demoWhenValue: "Tonight, {time}",
+    demoReminder: "Reminder set",
+    demoPoint1:
+      "Party size and time come from tapped buttons — nothing to mistype, nothing to parse.",
+    demoPoint2:
+      "The keyboard is built from your live table availability, so a double booking cannot be offered.",
+    demoPoint3:
+      "The guest keeps a confirmation with a reference code, and a reminder before the table is held.",
+    demoCta: "Brief a bot like this",
     formIntro:
       "Great — a few details and I'll hand this straight to the team. The parts I could pick up from your message are already filled in.",
     formTitle: "Bot requirements",
@@ -231,8 +258,35 @@ export const translations = {
 
     rateLimited: "درخواست‌ها خیلی پرتعداد است — لحظه‌ای صبر کنید و دوباره تلاش کنید.",
 
-    demoCaption:
+    demoKicker: "نمونهٔ زنده",
+    demoHeading: "رزرو میز، داخل چت",
+    demoLead:
       "امتحانش کنید — دکمه‌ها واقعی هستند. زمان دیگری انتخاب کنید تا ربات همراهتان بیاید.",
+    demoBadge: "نمونهٔ زنده",
+    demoVenue: "آشپزخانه انار",
+    demoVenueCode: "AK",
+    demoBotLabel: "ربات",
+    demoComposer: "پیام",
+    demoTyping: "ربات در حال نوشتن است",
+    demoGreet1: "عصر بخیر. می‌توانم امشب یک میز برایتان نگه دارم.",
+    demoGreet2: "چند نفر تشریف می‌آورید؟",
+    demoGuests: "{n} نفر",
+    demoGuestsMany: "۵ نفر یا بیشتر",
+    demoFree: "امشب، برای {who}. این ساعت‌ها هنوز آزاد است:",
+    demoConfirmed: "میز رزرو شد",
+    demoWhere: "کجا",
+    demoWhen: "کی",
+    demoGuestsLabel: "تعداد",
+    demoCode: "کد",
+    demoWhenValue: "امشب، {time}",
+    demoReminder: "یادآور تنظیم شد",
+    demoPoint1:
+      "تعداد نفرات و ساعت از دکمه‌ها می‌آید — نه غلط تایپی، نه نیاز به تحلیل متن.",
+    demoPoint2:
+      "دکمه‌ها از میزهای واقعاً خالی شما ساخته می‌شود، پس رزرو تکراری اصلاً پیشنهاد نمی‌شود.",
+    demoPoint3:
+      "مهمان یک تأییدیه با کد پیگیری می‌گیرد و پیش از رسیدن وقت، یادآور دریافت می‌کند.",
+    demoCta: "درخواست ربات مشابه",
     formIntro:
       "عالی — چند جزئیات بگیرم و درخواست شما را مستقیم به تیم می‌سپارم. مواردی که از پیام شما قابل برداشت بود، از قبل پر شده‌اند.",
     formTitle: "مشخصات ربات",

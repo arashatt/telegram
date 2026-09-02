@@ -94,6 +94,18 @@ surface owes the same — collapsing its CSS durations is not enough. It also
 pauses while scrolled out of view, and only stages the machine can re-enter are
 resumable; a transition stage restarts the loop instead of stalling it.
 
+It is a landing section (`.demo`, above the trust cards), not a conversation
+card: every visitor meets a working bot on arrival rather than only the ones
+who happen to use the word "book". Unlike the code film it is never hidden on
+small screens — a phone-shaped mock-up is the one thing on the page a phone
+shows better than a desktop — and its screen height is capped against the
+viewport there so the tappable keyboard cannot fall off the bottom.
+
+Because it is permanent landing copy, every string in it comes from
+`src/i18n.js`, the scripted chat included. The one deliberate exception is the
+booking reference: an identifier people read aloud and type back, so it stays
+Latin and `dir="ltr"` in both languages.
+
 ## RTL
 
 Logical properties everywhere — `padding-inline`, `inset-inline-start`,

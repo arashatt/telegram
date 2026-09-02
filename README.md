@@ -307,11 +307,12 @@ src/components/
   RequirementsForm.jsx the inline form
   Receipt.jsx          read-only summary after submitting
   TelegramLogin.jsx    popup sign-in, verified server-side
-  Landing.jsx          hero, trust strip, how-it-works, footer
+  Landing.jsx          hero, live demo, trust strip, how-it-works, footer
   BotMark.jsx          animated hero mark
   HubDiagram.jsx       animated how-it-works diagram
   Icons.jsx            inline SVG glyphs
   CodeFilm.jsx         looping film of the Worker build (landing)
+  BookingDemo.jsx      tappable booking-bot phone mock-up (landing)
 worker/
   index.js             routes
   intake.js            prompts, JSON extraction, sanitising
@@ -325,6 +326,30 @@ worker/
 `shared/formSchema.js` is imported by both sides on purpose: the field list,
 the allowed option values and the validation rules exist once, so the form
 and the Worker cannot disagree about what a valid brief is.
+
+## The live demo
+
+`BookingDemo.jsx` is a phone-shaped mock-up of a booking bot on the landing
+page, above the trust cards. It plays a scripted chat on a loop, and the
+keyboard is real: tapping a party size or a time takes the flow down that
+branch, and the confirmation, booking code, guest count and reminder all
+follow the choice.
+
+Three things it does that a decorative animation would not:
+
+- It pauses while scrolled out of view and resumes when scrolled back.
+- Under `prefers-reduced-motion: reduce` it never plays or loops by itself,
+  but the keyboard still answers a tap — the visitor drives it instead of
+  watching it. A JavaScript sequence is the one thing the global CSS
+  reduced-motion reset cannot reach, so the component reads the preference
+  itself.
+- Its screen height is capped against the viewport on narrow screens, so the
+  tappable keyboard cannot fall off the bottom of a short phone.
+
+Every string in it comes from `src/i18n.js`, the scripted chat included, so
+it follows the page language like the rest of the landing copy. The one
+exception is the booking reference: an identifier people read aloud and type
+back, so it stays Latin and `dir="ltr"` in both languages.
 
 ## Choosing a model
 

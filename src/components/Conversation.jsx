@@ -1,30 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n.js";
-import { looksLikeBooking, looksPersian } from "../lang.js";
+import { looksPersian } from "../lang.js";
 import RequirementsForm from "./RequirementsForm.jsx";
 import Receipt from "./Receipt.jsx";
-import BookingDemo from "./BookingDemo.jsx";
 import { BubbleMark, PlaneGlyph } from "./Icons.jsx";
 import "./Conversation.css";
 
 let nextId = 0;
 const makeId = () => `item-${nextId++}`;
 
-/* The extract step returns a bot or project title, which is only sometimes a
-   venue. "Anar Kitchen Booking Bot" is one once the bot words come off;
-   "Booking Bot" is not a venue at all, so the demo keeps its own default
-   rather than confirming a table at a bot. */
-const NOT_A_VENUE =
-  /\b(bot|assistant|booking|bookings|reservation|reservations|appointment|appointments|table|tables|slot|slots)\b/gi;
-
-function venueFromName(name) {
-  const trimmed = String(name || "")
-    .replace(NOT_A_VENUE, " ")
-    .replace(/ربات|دستیار|رزرو|نوبت‌دهی|نوبت|میز/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return trimmed.length >= 3 ? trimmed : undefined;
-}
 
 /* Reads the Workers AI SSE stream, handing each new token to onToken so the
    reply lands word by word instead of in one jump. */
@@ -77,8 +61,6 @@ export default function Conversation() {
 
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
-  const demoRef = useRef(null);
-  const demoSeen = useRef(false);
   const lastUserMessage = useRef("");
 
   useEffect(() => {
@@ -88,19 +70,6 @@ export default function Conversation() {
        in view. */
     const scroller = bottomRef.current?.parentElement;
     if (scroller) scroller.scrollTop = scroller.scrollHeight;
-
-    /* The demo is the one item in the stream meant to be looked at and
-       touched, and on a phone it is taller than the screen. Without this the
-       visitor is left on its caption with the phone below the fold — a
-       promise that the buttons are live, and no buttons. Once only: after
-       they have seen it, the page is theirs. */
-    if (demoRef.current && !demoSeen.current) {
-      demoSeen.current = true;
-      const still =
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      demoRef.current.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" });
-    }
   }, [items, streamingText, busy]);
 
   useEffect(() => {
@@ -157,10 +126,6 @@ export default function Conversation() {
       // once, with no button to press.
       if (looksPersian(text)) setLang("fa");
 
-      // Keyword match fires instantly; the extract step below can still open it
-      // for phrasings the keywords miss.
-      const bookingByKeyword = looksLikeBooking(text);
-
       const history = retry
         ? transcript()
         : [...transcript(), { role: "user", content: text }];
@@ -207,21 +172,6 @@ export default function Conversation() {
               content: reply.trim(),
             });
           }
-          /* Shown at most once, and kept once shown: a visitor who described a
-             booking bot should not lose the demo by talking further. */
-          const bookingByPlan =
-            plan?.prefill?.botType === "booking" || plan?.modules?.includes("booking");
-          if (
-            (bookingByKeyword || bookingByPlan) &&
-            !prev.some((item) => item.type === "demo")
-          ) {
-            next.push({
-              id: makeId(),
-              type: "demo",
-              venue: venueFromName(plan?.prefill?.botName),
-            });
-          }
-
           if (plan) {
             next.push({
               id: makeId(),
@@ -320,14 +270,6 @@ export default function Conversation() {
                 <Bubble key={item.id} role={item.role}>
                   {item.content}
                 </Bubble>
-              );
-            }
-            if (item.type === "demo") {
-              return (
-                <li key={item.id} ref={demoRef} className="conversation__card conversation__card--demo">
-                  <p className="conversation__card-intro">{t("demoCaption")}</p>
-                  <BookingDemo venue={item.venue} />
-                </li>
               );
             }
             if (item.type === "form") {

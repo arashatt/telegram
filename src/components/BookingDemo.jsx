@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useI18n } from '../i18n.js'
 import { BubbleMark, CheckIcon, PlaneGlyph } from './Icons'
 import './BookingDemo.css'
 
 const SIZES = ['2', '3', '4', '5+']
 const TIMES = ['18:30', '19:00', '19:30', '20:15']
+
+/* The dictionary holds plain strings, so the few lines with a value in them
+   carry a {placeholder} the caller fills. */
+const fill = (text, vars) =>
+  Object.entries(vars).reduce((out, [key, value]) => out.replaceAll(`{${key}}`, value), text)
 
 const BEATS = {
   greetFirst: 450,
@@ -22,9 +28,9 @@ const BEATS = {
   holdThenLoop: 4600,
 }
 
-const GREETING = [
-  { id: 'g1', from: 'bot', text: 'Evening. I can hold a table for you tonight.', time: '20:12' },
-  { id: 'g2', from: 'bot', text: 'How many of you are coming?', time: '20:12' },
+const greetingFor = (t) => [
+  { id: 'g1', from: 'bot', text: t('demoGreet1'), time: '20:12' },
+  { id: 'g2', from: 'bot', text: t('demoGreet2'), time: '20:12' },
 ]
 
 /** "Maro & Olive Kitchen" -> "MO". Strips words with no letters or digits so
@@ -34,12 +40,16 @@ function initialsOf(venue) {
     .split(/\s+/)
     .map((word) => word.replace(/[^\p{L}\p{N}]/gu, ''))
     .filter(Boolean)
-  return letters.slice(0, 2).map((word) => word[0]).join('').toUpperCase() || 'BK'
+  const initials = letters.slice(0, 2).map((word) => word[0]).join('').toUpperCase()
+  /* A booking reference is an identifier people read aloud and type back, so
+     it stays Latin. Persian initials would also invert against the digits
+     whichever direction the row is given. */
+  return /^[A-Z0-9]{1,2}$/.test(initials) ? initials : 'BK'
 }
 
-function guestLabel(size) {
-  if (!size) return '4 guests'
-  return size === '5+' ? '5 or more' : `${size} guests`
+function guestLabel(t, size) {
+  if (size === '5+') return t('demoGuestsMany')
+  return fill(t('demoGuests'), { n: size || '4' })
 }
 
 const IDLE = { msgs: [], typing: false, keys: null, size: null, time: null, flash: null, reminder: false }
@@ -51,12 +61,18 @@ const IDLE = { msgs: [], typing: false, keys: null, size: null, time: null, flas
 const RESUMABLE = new Set(['greet', 'askSize', 'askTime', 'confirmed'])
 
 export default function BookingDemo({
-  venue = 'Anar Kitchen',
+  venue,
   frameStyle = 'realistic',
   autoplay = true,
   loopSpeed = 1,
   showReminder = true,
 }) {
+  const { t } = useI18n()
+  /* The page can change language under the demo, and the scripted lines are
+     rebuilt when it does — the loop restarts from the greeting anyway. */
+  const greeting = useMemo(() => greetingFor(t), [t])
+  const place = venue || t('demoVenue')
+
   const reduced = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     []
@@ -68,7 +84,7 @@ export default function BookingDemo({
      value, not a correction, so it is decided here rather than in an effect. */
   const [view, setView] = useState(() =>
     idle
-      ? { ...IDLE, ref: 'AK-1930', msgs: GREETING, keys: 'size' }
+      ? { ...IDLE, ref: 'AK-1930', msgs: greetingFor(t), keys: 'size' }
       : { ...IDLE, ref: 'AK-1930' }
   )
 
@@ -110,8 +126,8 @@ export default function BookingDemo({
 
       if (next === 'greet') {
         setView((v) => ({ ...v, ...IDLE }))
-        after(BEATS.greetFirst, () => push('bot', GREETING[0].text, GREETING[0].time))
-        after(BEATS.greetSecond, () => push('bot', GREETING[1].text, GREETING[1].time))
+        after(BEATS.greetFirst, () => push('bot', greeting[0].text, greeting[0].time))
+        after(BEATS.greetSecond, () => push('bot', greeting[1].text, greeting[1].time))
         after(BEATS.greetToKeys, () => m.enter('askSize'))
         return
       }
@@ -140,7 +156,7 @@ export default function BookingDemo({
         if (!idle) after(BEATS.holdThenLoop, () => m.enter('greet'))
       }
     },
-    [after, clear, idle, push]
+    [after, clear, greeting, idle, push]
   )
 
   const pickSize = useCallback(
@@ -152,19 +168,18 @@ export default function BookingDemo({
       after(BEATS.typingIn, () => setView((v) => ({ ...v, typing: true })))
       after(BEATS.sizeReply, () => {
         setView((v) => ({ ...v, typing: false }))
-        const who = value === '5+' ? 'a larger group' : `${value} guests`
-        push('bot', `Tonight, for ${who}. These times are still free:`, '20:13')
+        push('bot', fill(t('demoFree'), { who: guestLabel(t, value) }), '20:13')
       })
       after(BEATS.sizeToTime, () => machine.current.enter('askTime'))
     },
-    [after, clear, push]
+    [after, clear, push, t]
   )
 
   const pickTime = useCallback(
     (value) => {
       clear()
       stage.current = 'timePicked'
-      setView((v) => ({ ...v, keys: null, flash: null, time: value, ref: `${initialsOf(venue)}-${value.replace(':', '')}` }))
+      setView((v) => ({ ...v, keys: null, flash: null, time: value, ref: `${venue ? initialsOf(venue) : t('demoVenueCode')}-${value.replace(':', '')}` }))
       push('user', value, '20:14')
       after(BEATS.typingIn, () => setView((v) => ({ ...v, typing: true })))
       after(BEATS.confirmCard, () => {
@@ -176,7 +191,7 @@ export default function BookingDemo({
       })
       after(BEATS.confirmToHold, () => machine.current.enter('confirmed'))
     },
-    [after, clear, push, venue]
+    [after, clear, push, t, venue]
   )
 
   /* Declared before the observer effect so it is assigned first on mount; no
@@ -214,14 +229,14 @@ export default function BookingDemo({
   }, [clear, idle])
 
   const labels = view.keys === 'size' ? SIZES : view.keys === 'time' ? TIMES : []
-  const guests = guestLabel(view.size)
+  const guests = guestLabel(t, view.size)
   const when = view.time || '19:30'
 
   return (
     <div className="bkd">
       <div className="bkd__head">
-        <span className="bkd__title" dir="auto">Table booking, in chat</span>
-        <span className="bkd__badge">live demo</span>
+        <span className="bkd__title" dir="auto">{t('demoHeading')}</span>
+        <span className="bkd__badge">{t('demoBadge')}</span>
       </div>
 
       <div className="bkd__body">
@@ -233,8 +248,8 @@ export default function BookingDemo({
                   <BubbleMark />
                 </span>
                 <span className="bkd__who">
-                  <span className="bkd__name" dir="auto">{venue}</span>
-                  <span className="bkd__sub">bot</span>
+                  <span className="bkd__name" dir="auto">{place}</span>
+                  <span className="bkd__sub">{t('demoBotLabel')}</span>
                 </span>
               </div>
 
@@ -244,8 +259,8 @@ export default function BookingDemo({
                     <CheckIcon />
                   </span>
                   <span className="bkd__toasttext">
-                    <span className="bkd__toasttitle">Reminder set</span>
-                    <span className="bkd__toastline" dir="auto">{`${venue} · ${when} · ${guests}`}</span>
+                    <span className="bkd__toasttitle">{t('demoReminder')}</span>
+                    <span className="bkd__toastline" dir="auto">{`${place} · ${when} · ${guests}`}</span>
                   </span>
                 </div>
               )}
@@ -259,17 +274,19 @@ export default function BookingDemo({
                           <span className="bkd__tick">
                             <CheckIcon />
                           </span>
-                          <span>Table confirmed</span>
+                          <span>{t('demoConfirmed')}</span>
                         </div>
                         <dl className="bkd__facts">
-                          <dt>Where</dt>
-                          <dd dir="auto">{venue}</dd>
-                          <dt>When</dt>
-                          <dd dir="auto">{`Tonight, ${when}`}</dd>
-                          <dt>Guests</dt>
+                          <dt>{t('demoWhere')}</dt>
+                          <dd dir="auto">{place}</dd>
+                          <dt>{t('demoWhen')}</dt>
+                          <dd dir="auto">{fill(t('demoWhenValue'), { time: when })}</dd>
+                          <dt>{t('demoGuestsLabel')}</dt>
                           <dd dir="auto">{guests}</dd>
-                          <dt>Code</dt>
-                          <dd className="bkd__code" dir="auto">{view.ref}</dd>
+                          <dt>{t('demoCode')}</dt>
+                          {/* An identifier, not prose: it reads the same way in either language,
+                              so it is pinned LTR rather than flipped by the letters in it. */}
+                          <dd className="bkd__code" dir="ltr">{view.ref}</dd>
                         </dl>
                       </div>
                     </div>
@@ -285,7 +302,7 @@ export default function BookingDemo({
 
                 {view.typing && (
                   <div className="bkd__row bkd__row--in">
-                    <div className="bkd__typing" role="status" aria-label="Bot is typing">
+                    <div className="bkd__typing" role="status" aria-label={t('demoTyping')}>
                       <span />
                       <span />
                       <span />
@@ -310,7 +327,7 @@ export default function BookingDemo({
                   </div>
                 ) : (
                   <div className="bkd__composer" aria-hidden="true">
-                    <span className="bkd__field">Message</span>
+                    <span className="bkd__field">{t('demoComposer')}</span>
                     <span className="bkd__send">
                       <PlaneGlyph />
                     </span>
@@ -328,37 +345,26 @@ export default function BookingDemo({
               <span className="bkd__point">
                 <CheckIcon />
               </span>
-              <span dir="auto">
-                Party size and time come from tapped buttons — nothing to mistype, nothing to parse.
-              </span>
+              <span dir="auto">{t('demoPoint1')}</span>
             </li>
             <li>
               <span className="bkd__point">
                 <CheckIcon />
               </span>
-              <span dir="auto">
-                The keyboard is built from your live table availability, so a double booking cannot be
-                offered.
-              </span>
+              <span dir="auto">{t('demoPoint2')}</span>
             </li>
             <li>
               <span className="bkd__point">
                 <CheckIcon />
               </span>
-              <span dir="auto">
-                The guest keeps a confirmation with a reference code, and a reminder before the table is
-                held.
-              </span>
+              <span dir="auto">{t('demoPoint3')}</span>
             </li>
           </ul>
           <div className="bkd__cta">
-            <button type="button" className="pill pill--provider">
+            <a className="pill pill--provider" href="#brief">
               <PlaneGlyph />
-              Brief this bot
-            </button>
-            <button type="button" className="bkd__dismiss">
-              Not what I meant
-            </button>
+              {t('demoCta')}
+            </a>
           </div>
         </div>
       </div>

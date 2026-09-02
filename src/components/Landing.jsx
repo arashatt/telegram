@@ -1,4 +1,5 @@
 import { useI18n } from "../i18n.js";
+import BookingDemo from "./BookingDemo.jsx";
 import BotMark from "./BotMark.jsx";
 import CodeFilm from "./CodeFilm.jsx";
 import HubDiagram from "./HubDiagram.jsx";
@@ -40,6 +41,18 @@ export default function Landing({ children }) {
         </div>
         <div className="hero__visual">
           <BotMark />
+        </div>
+      </section>
+
+      {/* Proof before the pitch: a working bot every visitor can tap, rather
+          than a description of one. Ahead of the trust cards so it is seen
+          without scrolling for it. */}
+      <section className="demo" id="demo">
+        <div className="demo__inner">
+          <span className="demo__kicker">{t("demoKicker")}</span>
+          <h2 className="demo__title">{t("demoHeading")}</h2>
+          <p className="demo__body">{t("demoLead")}</p>
+          <BookingDemo />
         </div>
       </section>
 

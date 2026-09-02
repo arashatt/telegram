@@ -431,18 +431,6 @@
   border-block-start: 1px solid var(--line);
 }
 
-.bkd__dismiss {
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: inherit;
-  font-size: 14px;
-  color: var(--ink-muted);
-  cursor: pointer;
-  transition: color 0.15s ease;
-}
-
-.bkd__dismiss:hover { color: var(--danger); }
 
 @keyframes bkd-in {
   from { opacity: 0; transform: translateY(6px); }
