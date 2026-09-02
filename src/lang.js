@@ -20,3 +20,14 @@ export function prefersPersian(languages) {
   const list = languages ?? (typeof navigator === "undefined" ? [] : navigator.languages) ?? [];
   return list.some((tag) => /^fa(-|$)/i.test(String(tag)));
 }
+
+/* A visitor describing a booking bot. Matched in the browser so the demo can
+   appear the instant they send it, rather than waiting on extraction; the
+   Persian terms are matched without word boundaries because \b does not apply
+   to non-Latin script. */
+const BOOKING_HINTS =
+  /\b(book|booking|reserve|reservation|appointment|table|slot)\b|رزرو|نوبت|میز/i;
+
+export function looksLikeBooking(text) {
+  return typeof text === "string" && BOOKING_HINTS.test(text);
+}

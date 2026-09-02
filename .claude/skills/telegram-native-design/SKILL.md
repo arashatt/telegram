@@ -86,6 +86,14 @@ Hover transitions are `.15s ease`. The global reduced-motion reset collapses
 all of it; because nothing depends on an animation *finishing*, no component
 needs its own exception.
 
+A sequence driven from JavaScript is the exception the CSS reset cannot reach.
+`BookingDemo.jsx` plays a scripted chat on a timer, so it reads
+`prefers-reduced-motion` itself: the keyboard is still offered and still
+answers a tap, but nothing auto-picks and nothing loops. Any future autoplaying
+surface owes the same — collapsing its CSS durations is not enough. It also
+pauses while scrolled out of view, and only stages the machine can re-enter are
+resumable; a transition stage restarts the loop instead of stalling it.
+
 ## RTL
 
 Logical properties everywhere — `padding-inline`, `inset-inline-start`,

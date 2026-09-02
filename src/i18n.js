@@ -92,6 +92,8 @@ export const translations = {
 
     rateLimited: "That's a lot of requests at once — please wait a moment and try again.",
 
+    demoCaption:
+      "Try it — the buttons are live. Pick a different time and the bot follows you.",
     formIntro:
       "Great — a few details and I'll hand this straight to the team. The parts I could pick up from your message are already filled in.",
     formTitle: "Bot requirements",
@@ -229,6 +231,8 @@ export const translations = {
 
     rateLimited: "درخواست‌ها خیلی پرتعداد است — لحظه‌ای صبر کنید و دوباره تلاش کنید.",
 
+    demoCaption:
+      "امتحانش کنید — دکمه‌ها واقعی هستند. زمان دیگری انتخاب کنید تا ربات همراهتان بیاید.",
     formIntro:
       "عالی — چند جزئیات بگیرم و درخواست شما را مستقیم به تیم می‌سپارم. مواردی که از پیام شما قابل برداشت بود، از قبل پر شده‌اند.",
     formTitle: "مشخصات ربات",
