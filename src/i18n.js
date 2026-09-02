@@ -42,7 +42,7 @@ export const translations = {
     trustTimelineBody:
       "Tell us your deadline in the brief and we will say whether it is realistic.",
     trustLanguagesKicker: "Languages",
-    trustLanguagesTitle: "Persian, English, Arabic, Turkish",
+    trustLanguagesTitle: "English, Arabic, Turkish, and more",
     trustLanguagesBody:
       "Multi-language replies, and this page follows your language too.",
     trustHostingKicker: "Hosting",

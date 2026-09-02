@@ -8,7 +8,10 @@ import "./Landing.css";
 /* Everything above the intake. The three trust cards and the checklist are
    grounded in real option sets (TIMELINE_OPTIONS, BOT_LANGUAGE_OPTIONS,
    HOSTING_OPTIONS, and the menus/database/scheduled features) — if those
-   change in shared/formSchema.js, this copy should change with them. */
+   change in shared/formSchema.js, this copy should change with them.
+   The languages card names a few and says "and more" rather than listing the
+   set: the English page leads with the languages an international visitor is
+   looking for, while the form still offers every option. */
 export default function Landing({ children }) {
   const { t, lang } = useI18n();
 
