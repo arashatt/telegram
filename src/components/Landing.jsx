@@ -1,5 +1,7 @@
+import { isInstagram } from "../../shared/platforms.js";
 import { useI18n } from "../i18n.js";
 import BookingDemo from "./BookingDemo.jsx";
+import CommentToDmDemo from "./CommentToDmDemo.jsx";
 import BotMark from "./BotMark.jsx";
 import CodeFilm from "./CodeFilm.jsx";
 import HubDiagram from "./HubDiagram.jsx";
@@ -14,7 +16,7 @@ import "./Landing.css";
    set: the English page leads with the languages an international visitor is
    looking for, while the form still offers every option. */
 export default function Landing({ children }) {
-  const { t, lang } = useI18n();
+  const { t, lang, platform } = useI18n();
 
   const trust = [
     ["trustTimelineKicker", "trustTimelineTitle", "trustTimelineBody"],
@@ -52,7 +54,11 @@ export default function Landing({ children }) {
           <span className="demo__kicker">{t("demoKicker")}</span>
           <h2 className="demo__title">{t("demoHeading")}</h2>
           <p className="demo__body">{t("demoLead")}</p>
-          <BookingDemo />
+          {/* One demo per site: each shows the flow it is actually good at.
+              Comment-to-DM cannot be told inside a DM thread — it starts in
+              public comments — which is why Instagram gets its own component
+              rather than the booking demo in different chrome. */}
+          {isInstagram(platform) ? <CommentToDmDemo /> : <BookingDemo />}
         </div>
       </section>
 

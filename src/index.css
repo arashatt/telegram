@@ -26,6 +26,9 @@
   --r-input: 10px;
   --shadow: 0 2px 10px rgba(15, 20, 25, 0.06);
   --shadow-lift: 0 10px 32px rgba(15, 20, 25, 0.12);
+  /* Upward, for a sheet rising over content. The pair above points down and
+     cannot be reused for it. */
+  --shadow-sheet: 0 -8px 24px rgba(15, 20, 25, 0.12);
 
   --font-display: "Vazirmatn", -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
   --gutter: 22px;
@@ -47,6 +50,7 @@
   --danger: #f08b7f;
   --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   --shadow-lift: 0 12px 34px rgba(0, 0, 0, 0.5);
+  --shadow-sheet: 0 -10px 28px rgba(0, 0, 0, 0.5);
 }
 
 /* The Instagram site is the same system with a different accent. Redefining
@@ -66,6 +70,28 @@
   --tg-blue-strong: #bf1a5e;
   --tg-blue-ink: #96185a;
   --bubble-out: #fce7f0;
+
+  /* A second accent, additive rather than a replacement: --tg-blue is consumed
+     in ~74 places as text, hairline borders and fills under white labels, and a
+     gradient is invalid in every one of those. The ramp is this accent's own
+     hue opened out in oklch to a violet start and a warm end.
+
+     Where it may go: filled discs that hold an icon or nothing, and — in its
+     --soft form — tinted bands. Never behind text. The warm end sits near
+     L 0.7, where white falls under 3:1, which is why the CTA pill, the badge
+     and the hot chip fills all stay flat. */
+  --ig-wash: linear-gradient(
+    135deg,
+    oklch(0.54 0.18 318),
+    oklch(0.55 0.2 5) 45%,
+    oklch(0.7 0.16 52)
+  );
+  --ig-wash-soft: linear-gradient(
+    135deg,
+    oklch(0.54 0.18 318 / 0.1),
+    oklch(0.55 0.2 5 / 0.09) 45%,
+    oklch(0.7 0.16 52 / 0.12)
+  );
 }
 
 [data-theme="dark"][data-platform="instagram"] {
@@ -73,6 +99,27 @@
   --tg-blue-strong: #f06ba3;
   --tg-blue-ink: #f7b0cd;
   --bubble-out: #4a2033;
+
+  /* Same hues, lifted for the dark ground. */
+  --ig-wash: linear-gradient(
+    135deg,
+    oklch(0.65 0.16 318),
+    oklch(0.66 0.18 5) 45%,
+    oklch(0.79 0.14 52)
+  );
+  --ig-wash-soft: linear-gradient(
+    135deg,
+    oklch(0.65 0.16 318 / 0.16),
+    oklch(0.66 0.18 5 / 0.15) 45%,
+    oklch(0.79 0.14 52 / 0.18)
+  );
+}
+
+/* The one filled accent disc outside the demo that holds only an icon, so the
+   rule above allows it — and it stops the wash reading as one component's
+   flourish rather than the site's accent. */
+[data-platform="instagram"] .brand__disc {
+  background: var(--ig-wash);
 }
 
 * {

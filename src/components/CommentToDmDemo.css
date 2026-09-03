@@ -1,0 +1,837 @@
+/* Comment-to-DM demo. Every value resolves through a token from src/index.css,
+   so both themes and both accents come free — no component here names a colour.
+
+   The Instagram-shaped differences are structural, not decorative: a light DM
+   header instead of an accent bar, bubbles with no speaker tail, and quick
+   replies in one horizontal scroller rather than a grid keyboard. Those are
+   the three things the automation's UI actually depends on.
+
+   Two accent tokens, not one. --tg-blue is the flat hue and carries everything
+   that needs contrast: text, borders, the CTA pill, the hot chip fills.
+   --ig-wash is the same hue family opened into three stops and is used only on
+   filled discs holding an icon and on tinted bands — never behind text, since
+   the warm end of the ramp is too light for white. Both are defined in
+   src/index.css under [data-platform="instagram"]; every var() here carries a
+   flat fallback so the component degrades to the single accent if it is ever
+   mounted on the Telegram site. */
+
+.ctd {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* ---- card head ---- */
+
+.ctd__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-block-end: 1px solid var(--line);
+  background: var(--ig-wash-soft, var(--bubble-in));
+}
+
+.ctd__title {
+  flex: 1;
+  min-width: 180px;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Says which surface the phone is on, so the slide is legible as a move
+   between two places rather than a transition that just happened. */
+.ctd__stages {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.ctd__stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.ctd__stage.is-on {
+  color: var(--tg-blue);
+}
+
+.ctd__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ctd__arrow {
+  opacity: 0.5;
+}
+
+.ctd__badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--tg-blue-ink);
+  background: color-mix(in srgb, var(--tg-blue) 14%, transparent);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+
+.ctd__body {
+  display: grid;
+  grid-template-columns: minmax(0, 276px) minmax(0, 1fr);
+  gap: 30px;
+  align-items: center;
+  padding: 22px;
+}
+
+.ctd__phonewrap {
+  display: flex;
+  justify-content: center;
+}
+
+/* ---- phone ----
+   No device-frame token exists, so the bezel rides --ink: a dark phone on the
+   light theme, a light one on dark, screen stays --bg either way. */
+
+.ctd__phone {
+  position: relative;
+  flex: none;
+  width: 276px;
+  padding: 10px;
+  background: var(--ink);
+  border-radius: 40px;
+  box-shadow: var(--shadow-lift);
+}
+
+.ctd__phone--minimal {
+  padding: 3px;
+  background: var(--line);
+  border-radius: 32px;
+}
+
+.ctd__phone--none {
+  padding: 0;
+  background: transparent;
+  border-radius: 24px;
+}
+
+.ctd__notch {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 14px;
+  width: 74px;
+  height: 6px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+.ctd__phone--minimal .ctd__notch,
+.ctd__phone--none .ctd__notch {
+  display: none;
+}
+
+.ctd__screen {
+  position: relative;
+  height: 540px;
+  border-radius: 31px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.ctd__track {
+  display: flex;
+  width: 200%;
+  height: 100%;
+  transition: transform 620ms cubic-bezier(0.65, 0.02, 0.28, 1);
+}
+
+/* Logical, so the Persian page slides the other way without a second rule. */
+.ctd__track.is-dm {
+  transform: translateX(-50%);
+}
+
+[dir='rtl'] .ctd__track.is-dm {
+  transform: translateX(50%);
+}
+
+.ctd__panel {
+  width: 50%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ctd__panel--post {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ---- the post ---- */
+
+.ctd__postbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-block-end: 1px solid var(--line);
+}
+
+.ctd__handle {
+  font-size: 12.5px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ctd__more {
+  margin-inline-start: auto;
+  display: flex;
+  gap: 2.5px;
+}
+
+.ctd__more span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--ink-muted);
+}
+
+.ctd__media {
+  flex: none;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--bubble-in);
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+/* The stand-in tile. Built from the accent's own wash so it belongs to the
+   page, and deliberately abstract — two soft forms, not a drawing of a
+   product. Replaced wholesale by a real photo when `image` is set. */
+.ctd__tile {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--ig-wash-soft, var(--bubble-in));
+}
+
+.ctd__tileform {
+  position: absolute;
+  inset-block-start: 18%;
+  inset-inline-start: 14%;
+  width: 46%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--ig-wash, var(--tg-blue));
+  opacity: 0.85;
+}
+
+.ctd__tileform--b {
+  inset-block-start: auto;
+  inset-block-end: 14%;
+  inset-inline-start: auto;
+  inset-inline-end: 12%;
+  width: 38%;
+  border-radius: 26%;
+  opacity: 0.55;
+}
+
+.ctd__media--photo {
+  background: var(--bubble-in);
+}
+
+.ctd__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+.ctd__dots {
+  position: absolute;
+  inset-block-end: 9px;
+  inset-inline: 0;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.ctd__dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-muted);
+  opacity: 0.4;
+}
+
+.ctd__dots span.is-on {
+  background: var(--ig-wash, var(--tg-blue));
+  opacity: 1;
+}
+
+.ctd__actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px 6px;
+  color: var(--ink);
+}
+
+.ctd__caption {
+  flex: 1;
+  min-height: 0;
+  padding: 0 12px 10px;
+  overflow: hidden;
+}
+
+.ctd__likes {
+  margin: 0 0 5px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ctd__captiontext {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.ctd__captionwho {
+  font-weight: 600;
+}
+
+.ctd__keyword {
+  font-weight: 600;
+  color: var(--tg-blue);
+}
+
+/* ---- comment sheet ---- */
+
+.ctd__sheet {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 66%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-block-start: 1px solid var(--line);
+  border-start-start-radius: 16px;
+  border-start-end-radius: 16px;
+  box-shadow: var(--shadow-sheet);
+  animation: ctd-sheet 420ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.ctd__grab {
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 7px 0 4px;
+}
+
+.ctd__grab span {
+  width: 34px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.ctd__sheettitle {
+  flex: none;
+  margin: 0;
+  padding: 0 13px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  border-block-end: 1px solid var(--line);
+}
+
+.ctd__comments {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 11px 13px;
+}
+
+/* The two seeded comments sit back so the keyword comment and the automated
+   reply are the two things read first. */
+.ctd__comment {
+  display: flex;
+  gap: 8px;
+  opacity: 0.55;
+  animation: ctd-in 240ms ease-out;
+}
+
+.ctd__comment.is-live {
+  opacity: 1;
+}
+
+.ctd__avatar {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--bubble-in);
+  color: var(--ink-muted);
+}
+
+.ctd__avatar--brand {
+  background: var(--ig-wash, var(--tg-blue));
+  color: #fff;
+}
+
+.ctd__avatar--mine {
+  background: color-mix(in srgb, var(--tg-blue) 18%, transparent);
+  color: var(--tg-blue-ink);
+}
+
+.ctd__avatar--lg {
+  width: 30px;
+  height: 30px;
+}
+
+.ctd__commenttext {
+  min-width: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.ctd__commentwho {
+  font-weight: 600;
+}
+
+.ctd__commentbody {
+  margin-inline-start: 5px;
+}
+
+.ctd__automated {
+  display: block;
+  margin-block-start: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--tg-blue-ink);
+}
+
+.ctd__sheetfoot {
+  flex: none;
+  padding: 9px 11px;
+  border-block-start: 1px solid var(--line);
+}
+
+/* Dashed, because it is a prompt to the visitor rather than a real composer —
+   the one control on this surface that does something. */
+.ctd__chip {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px dashed var(--tg-blue);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tg-blue);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.ctd__chip:hover {
+  background: color-mix(in srgb, var(--tg-blue) 10%, transparent);
+}
+
+.ctd__chip.is-hot,
+.ctd__chip:active {
+  background: var(--tg-blue);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* ---- the DM ---- */
+
+.ctd__dmhead {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-block-end: 1px solid var(--line);
+}
+
+.ctd__back {
+  flex: none;
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 300;
+  color: var(--ink-muted);
+}
+
+[dir='rtl'] .ctd__back {
+  transform: scaleX(-1);
+}
+
+.ctd__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.ctd__name {
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ctd__sub {
+  font-size: 10.5px;
+  color: var(--ink-muted);
+}
+
+.ctd__stream {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 7px;
+  padding: 12px 11px 6px;
+}
+
+.ctd__row {
+  display: flex;
+  max-width: 86%;
+  animation: ctd-in 240ms ease-out;
+}
+
+.ctd__row--in {
+  align-self: flex-start;
+}
+
+.ctd__row--out {
+  align-self: flex-end;
+}
+
+/* No tail: a DM bubble is the same shape whoever sent it. */
+.ctd__bubble {
+  padding: 8px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  border-radius: var(--r-bubble);
+  background: var(--bubble-in);
+  text-wrap: pretty;
+}
+
+.ctd__row--out .ctd__bubble {
+  background: var(--bubble-out);
+}
+
+.ctd__typing {
+  display: inline-flex;
+  gap: 5px;
+  padding: 11px 13px;
+  background: var(--bubble-in);
+  border-radius: var(--r-bubble);
+}
+
+.ctd__comment .ctd__typing {
+  padding: 8px 11px;
+}
+
+.ctd__typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tg-blue);
+  animation: ctd-dot 1.1s ease-in-out infinite;
+}
+
+.ctd__comment .ctd__typing span {
+  width: 6px;
+  height: 6px;
+}
+
+.ctd__typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.ctd__typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* ---- lead card ---- */
+
+.ctd__lead {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--r-input);
+  overflow: hidden;
+  background: var(--surface);
+  animation: ctd-pop 300ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.ctd__leadhead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-block-end: 1px solid var(--line);
+  background: var(--ig-wash-soft, var(--bubble-in));
+}
+
+.ctd__tick {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ig-wash, var(--tg-blue));
+  color: #fff;
+}
+
+.ctd__tick svg {
+  width: 10px;
+  height: 10px;
+}
+
+.ctd__facts {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 7px 8px;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.ctd__facts dt {
+  color: var(--ink-muted);
+}
+
+.ctd__facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ---- foot ---- */
+
+.ctd__foot {
+  flex: none;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 9px 9px;
+}
+
+.ctd__quick {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-block-end: 2px;
+  scrollbar-width: none;
+  animation: ctd-in 240ms ease-out;
+}
+
+.ctd__quick::-webkit-scrollbar {
+  display: none;
+}
+
+.ctd__quickbtn {
+  flex: none;
+  min-height: 44px;
+  padding: 8px 15px;
+  border: 1px solid var(--tg-blue);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--tg-blue);
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.ctd__quickbtn:hover {
+  background: color-mix(in srgb, var(--tg-blue) 10%, var(--surface));
+}
+
+.ctd__quickbtn.is-hot,
+.ctd__quickbtn:active {
+  background: var(--tg-blue);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.ctd__composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ctd__field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.ctd__send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--ig-wash, var(--tg-blue));
+  color: #fff;
+}
+
+/* ---- right column ---- */
+
+.ctd__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.ctd__points {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.ctd__points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  text-wrap: pretty;
+}
+
+.ctd__point {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-block-start: 2px;
+  border-radius: 50%;
+  color: var(--tg-blue);
+  background: var(--ig-wash-soft, var(--bubble-in));
+}
+
+.ctd__point svg {
+  width: 12px;
+  height: 12px;
+}
+
+.ctd__cta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-block-start: 18px;
+  border-block-start: 1px solid var(--line);
+}
+
+@keyframes ctd-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ctd-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.32;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes ctd-sheet {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes ctd-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .ctd__body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+}

@@ -202,14 +202,19 @@ export default function BookingDemo({
   })
 
   useEffect(() => {
+    /* The loop starts here, and the observer only pauses and resumes it. It
+       used to start from the observer's first callback instead, which works in
+       a browser but relies on that callback always arriving and reporting as
+       intersecting. If the card really is below the fold the first callback
+       lands within a frame and clears the timers well before the 450ms opening
+       beat renders anything. Same shape as CommentToDmDemo. */
+    inView.current = true
+    if (!idle) machine.current.enter('greet')
+
     const node = phoneRef.current
     if (idle || !node || typeof IntersectionObserver === 'undefined') {
-      inView.current = true
-      if (!idle) machine.current.enter('greet')
       return () => clear()
     }
-    // The loop starts from the first observer callback, never from mount, so a
-    // card below the fold is not a half-played sequence by the time it is seen.
     const io = new IntersectionObserver(
       (entries) => {
         const visible = entries.some((e) => e.isIntersecting)

@@ -60,3 +60,43 @@ export function CheckIcon({ size = 12, strokeWidth = 3 }) {
     </svg>
   );
 }
+
+/* The post's action row. PlaneGlyph already covers share and send, so only
+   these two were missing. Generic stroke shapes: a heart and a rounded speech
+   bubble are the universal social vocabulary, and neither reproduces any
+   platform's own iconography. */
+export function HeartGlyph({ size = 19 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19.5 12.6 12 20l-7.5-7.4A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 7.5 6Z" />
+    </svg>
+  );
+}
+
+export function CommentGlyph({ size = 19 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.8 9.8 0 0 1-2.8-.4L4 21l1.4-4.1A8.2 8.2 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z" />
+    </svg>
+  );
+}
