@@ -49,6 +49,32 @@
   --shadow-lift: 0 12px 34px rgba(0, 0, 0, 0.5);
 }
 
+/* The Instagram site is the same system with a different accent. Redefining
+   the accent tokens is the whole change — no component knows which site it is
+   rendering, because none of them names a colour.
+
+   The token names keep the --tg- prefix. They are consumed in 74 places across
+   nine files and mean "the site's accent", not "Telegram's blue"; renaming
+   would touch all of them to say the same thing.
+
+   Both blocks come after [data-theme="dark"], and the dark one carries two
+   attributes so it outranks the plain theme block whichever order they land
+   in. --provider-blue is deliberately untouched: the sign-in really is
+   Telegram's on both sites, and its button should say so. */
+[data-platform="instagram"] {
+  --tg-blue: #d6296f;
+  --tg-blue-strong: #bf1a5e;
+  --tg-blue-ink: #96185a;
+  --bubble-out: #fce7f0;
+}
+
+[data-theme="dark"][data-platform="instagram"] {
+  --tg-blue: #ec5a97;
+  --tg-blue-strong: #f06ba3;
+  --tg-blue-ink: #f7b0cd;
+  --bubble-out: #4a2033;
+}
+
 * {
   box-sizing: border-box;
 }

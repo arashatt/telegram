@@ -67,7 +67,7 @@ export default function BookingDemo({
   loopSpeed = 1,
   showReminder = true,
 }) {
-  const { t } = useI18n()
+  const { t, platform } = useI18n()
   /* The page can change language under the demo, and the scripted lines are
      rebuilt when it does — the loop restarts from the greeting anyway. */
   const greeting = useMemo(() => greetingFor(t), [t])
@@ -233,7 +233,7 @@ export default function BookingDemo({
   const when = view.time || '19:30'
 
   return (
-    <div className="bkd">
+    <div className={`bkd bkd--${platform}`}>
       <div className="bkd__head">
         <span className="bkd__title" dir="auto">{t('demoHeading')}</span>
         <span className="bkd__badge">{t('demoBadge')}</span>
@@ -361,7 +361,9 @@ export default function BookingDemo({
             </li>
           </ul>
           <div className="bkd__cta">
-            <a className="pill pill--provider" href="#brief">
+            {/* The accent pill, not the provider one: --provider-blue is
+                Telegram's own blue and belongs to the sign-in control alone. */}
+            <a className="pill" href="#brief">
               <PlaneGlyph />
               {t('demoCta')}
             </a>

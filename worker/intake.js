@@ -1,14 +1,15 @@
 import {
-  CHOICE_FIELDS,
   LIMITS,
-  TEXT_FIELDS,
+  choiceFieldsFor,
   emptyForm,
+  textFieldsFor,
 } from "../shared/formSchema.js";
+import { isInstagram } from "../shared/platforms.js";
 import {
   MAX_MODULES,
   MAX_QUESTIONS,
-  MODULES,
-  MODULE_IDS,
+  moduleIdsFor,
+  modulesFor,
 } from "../shared/questionModules.js";
 
 export const MAX_TRANSCRIPT_MESSAGES = 24;
@@ -23,9 +24,11 @@ const LANGUAGE_RULE = {
    answered once, then the requirements form takes over. The prompt says so
    explicitly, otherwise the model starts its own question-by-question
    interview and duplicates the form. */
-export function chatSystemPrompt(lang, formSubmitted, { reasoning = false } = {}) {
+export function chatSystemPrompt(lang, formSubmitted, { reasoning = false, platform } = {}) {
   const base = [
-    "You are the intake assistant for a studio that builds custom Telegram bots.",
+    isInstagram(platform)
+      ? "You are the intake assistant for a studio that builds custom Instagram automations — DM auto-replies, comment-to-DM, lead capture and support inside Instagram."
+      : "You are the intake assistant for a studio that builds custom Telegram bots.",
     LANGUAGE_RULE[lang] ?? LANGUAGE_RULE.en,
     "Be warm, concrete and brief: at most three short sentences.",
     "Never invent prices, delivery dates or technical guarantees.",
@@ -56,16 +59,20 @@ export function chatSystemPrompt(lang, formSubmitted, { reasoning = false } = {}
 
 const PREFILL_FIELDS = ["botName", "summary", "botType", "features", "audience", "integrations"];
 
-export function extractionMessages(text, lang) {
-  const choices = PREFILL_FIELDS.filter((f) => CHOICE_FIELDS[f])
-    .map((f) => `"${f}": one of [${CHOICE_FIELDS[f].options.map((o) => o.value).join(", ")}]`)
+export function extractionMessages(text, lang, platform) {
+  const choiceFields = choiceFieldsFor(platform);
+  const modules = modulesFor(platform);
+  const choices = PREFILL_FIELDS.filter((f) => choiceFields[f])
+    .map((f) => `"${f}": one of [${choiceFields[f].options.map((o) => o.value).join(", ")}]`)
     .join("; ");
 
   return [
     {
       role: "system",
       content: [
-        "You extract structured data from a description of a wanted Telegram bot.",
+        isInstagram(platform)
+          ? "You extract structured data from a description of a wanted Instagram automation."
+          : "You extract structured data from a description of a wanted Telegram bot.",
         'Respond with a single JSON object and nothing else — no prose, no code fences.',
         `Keys: "botName" (short string), "summary", "audience" (short string), "integrations" (short string), ${choices}.`,
         `"summary" is the important one: rewrite what the visitor said as a clear, concrete requirement of one to three sentences in ${
@@ -73,9 +80,9 @@ export function extractionMessages(text, lang) {
         }, in their voice, keeping every detail they gave.`,
         "Tidy the wording and fix obvious typos, but never invent a feature, platform, budget or deadline they did not mention.",
         '"features" is an array of the listed values.',
-        `"modules" is an array of at most ${MAX_MODULES} ids naming the topics worth asking this visitor about, chosen from: ${MODULE_IDS.map(
-          (id) => `${id} (${MODULES[id].en})`
-        ).join("; ")}. Pick only what their description actually calls for, most relevant first, and return [] if none fit.`,
+        `"modules" is an array of at most ${MAX_MODULES} ids naming the topics worth asking this visitor about, chosen from: ${moduleIdsFor(platform)
+          .map((id) => `${id} (${modules[id].en})`)
+          .join("; ")}. Pick only what their description actually calls for, most relevant first, and return [] if none fit.`,
         `"questions" is an array of at most ${MAX_QUESTIONS} short follow-up questions to ask them, in ${
           lang === "fa" ? "Persian" : "English"
         } — only for important things their description leaves open that the modules above do not already cover. Each must be one plain sentence ending in a question mark, answerable in a line or two. Return [] rather than padding.`,
@@ -133,15 +140,15 @@ function cleanText(value, limit) {
    known keys survive, strings are capped and choice values must exist in the
    option list, so neither a hallucination nor a crafted request can put an
    unexpected value into a brief. */
-export function sanitizeForm(input) {
-  const form = emptyForm();
+export function sanitizeForm(input, platform) {
+  const form = emptyForm(platform);
   if (!input || typeof input !== "object") return form;
 
-  for (const key of TEXT_FIELDS) {
+  for (const key of textFieldsFor(platform)) {
     if (key in input) form[key] = cleanText(input[key], LIMITS[key]);
   }
 
-  for (const [key, spec] of Object.entries(CHOICE_FIELDS)) {
+  for (const [key, spec] of Object.entries(choiceFieldsFor(platform))) {
     const allowed = spec.options.map((o) => o.value);
     const value = input[key];
     if (spec.multiple) {
@@ -161,8 +168,8 @@ export function sanitizeForm(input) {
 
 /* Keeps only the prefillable subset, so an over-eager extraction can't decide
    the visitor's budget or contact details for them. */
-export function sanitizePrefill(input) {
-  const full = sanitizeForm(input);
+export function sanitizePrefill(input, platform) {
+  const full = sanitizeForm(input, platform);
   const prefill = {};
   for (const key of PREFILL_FIELDS) {
     const value = full[key];

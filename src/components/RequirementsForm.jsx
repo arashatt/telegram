@@ -1,20 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BOT_LANGUAGE_OPTIONS,
-  BOT_TYPE_OPTIONS,
   BUDGET_OPTIONS,
-  FEATURE_OPTIONS,
   HOSTING_OPTIONS,
   LIMITS,
   SCALE_OPTIONS,
   TIMELINE_OPTIONS,
+  choiceFieldsFor,
   emptyForm,
   validateForm,
 } from "../../shared/formSchema.js";
+import { isInstagram } from "../../shared/platforms.js";
 import {
-  MODULES,
   labelFor as questionLabel,
   moduleFields,
+  modulesFor,
 } from "../../shared/questionModules.js";
 import { errorMessage, useI18n } from "../i18n.js";
 import { contactFromUser, useSession } from "../session.js";
@@ -44,12 +44,17 @@ export default function RequirementsForm({
   questions = [],
   onSubmit,
 }) {
-  const { t, lang } = useI18n();
+  const { t, lang, platform } = useI18n();
   const session = useSession();
+  /* The two lists that describe what is being built differ per site; the rest
+     of the form is the same engagement either way. */
+  const choiceFields = choiceFieldsFor(platform);
+  const bank = modulesFor(platform);
+  const instagram = isInstagram(platform);
   // Read at mount so a visitor who signed in from the header before opening
   // the form still gets their details filled in.
   const [form, setForm] = useState(() => {
-    const base = { ...emptyForm(), ...prefill };
+    const base = { ...emptyForm(platform), ...prefill };
     return { ...base, ...contactFromUser(session?.user, base) };
   });
   const [errors, setErrors] = useState({});
@@ -112,7 +117,7 @@ export default function RequirementsForm({
     event.preventDefault();
     if (submitting) return;
 
-    const found = validateForm(form);
+    const found = validateForm(form, platform);
     setErrors(found);
     if (Object.keys(found).length) {
       // Never leave an error hidden behind the disclosure.
@@ -168,13 +173,13 @@ export default function RequirementsForm({
         )}
       </fieldset>
 
-      {(moduleFields(modules).length > 0 || questions.length > 0) && (
+      {(moduleFields(modules, platform).length > 0 || questions.length > 0) && (
         <fieldset className="reqform__section reqform__section--tailored">
           <legend>{t("sectionTailored")}</legend>
           <p className="reqform__hint">{t("tailoredNote")}</p>
 
           {modules.map((id) =>
-            (MODULES[id]?.fields ?? []).map((field) => (
+            (bank[id]?.fields ?? []).map((field) => (
               <TailoredField
                 key={field.key}
                 field={field}
@@ -233,8 +238,27 @@ export default function RequirementsForm({
         <fieldset className="reqform__section">
           <legend>{t("sectionBot")}</legend>
           <Text field="botName" hint="botNameHint" {...shared} />
-          <Select field="botType" options={BOT_TYPE_OPTIONS} {...shared} />
-          <Checks field="features" options={FEATURE_OPTIONS} toggle={toggle} {...shared} />
+          {instagram && (
+            <>
+              <Text field="igHandle" hint="igHandleHint" dir="ltr" placeholder="@yourhandle" {...shared} />
+              {/* Asked because Instagram's messaging API only works on a
+                  professional account — a "personal" answer is a prerequisite
+                  the team needs to know about before quoting. */}
+              <Select
+                field="igAccount"
+                options={choiceFields.igAccount.options}
+                hint="igAccountHint"
+                {...shared}
+              />
+            </>
+          )}
+          <Select field="botType" options={choiceFields.botType.options} {...shared} />
+          <Checks
+            field="features"
+            options={choiceFields.features.options}
+            toggle={toggle}
+            {...shared}
+          />
           <Checks
             field="botLanguages"
             options={BOT_LANGUAGE_OPTIONS}
@@ -433,9 +457,9 @@ function Text({
   );
 }
 
-function Select({ field, t, form, errors, update, prefilled, options, required, lang }) {
+function Select({ field, t, form, errors, update, prefilled, options, required, lang, hint }) {
   return (
-    <FieldShell {...{ field, t, required, errors, prefilled }}>
+    <FieldShell {...{ field, t, hint, required, errors, prefilled }}>
       <select
         id={field}
         name={field}
@@ -443,7 +467,7 @@ function Select({ field, t, form, errors, update, prefilled, options, required, 
         value={form[field]}
         required={required}
         aria-invalid={errors[field] ? "true" : undefined}
-        aria-describedby={describedBy(field, errors)}
+        aria-describedby={describedBy(field, errors, hint)}
         onChange={(event) => update(field, event.target.value)}
       >
         {options.map((option) => (

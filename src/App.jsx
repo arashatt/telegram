@@ -3,7 +3,8 @@ import Conversation from "./components/Conversation.jsx";
 import Landing from "./components/Landing.jsx";
 import SignIn from "./components/SignIn.jsx";
 import { BubbleMark, MoonIcon } from "./components/Icons.jsx";
-import { DEFAULT_LANG, LangContext, dirFor, translations } from "./i18n.js";
+import { DEFAULT_LANG, LangContext, dictFor, dirFor } from "./i18n.js";
+import { usePlatform } from "./platform.js";
 import { prefersPersian } from "./lang.js";
 import { SessionContext, useTelegramSession } from "./session.js";
 
@@ -34,7 +35,8 @@ export default function App() {
   const [notice, setNotice] = useState(false);
   const langRef = useRef(null);
   const timers = useRef([]);
-  const dict = translations[lang];
+  const platform = usePlatform();
+  const dict = dictFor(platform, lang);
 
   if (langRef.current === null) langRef.current = lang;
 
@@ -67,8 +69,13 @@ export default function App() {
     document.documentElement.lang = lang;
     document.documentElement.dir = dirFor(lang);
     document.documentElement.dataset.theme = theme;
+    /* Scopes the accent tokens. On the root rather than the page element so a
+       fixed or portalled child is covered too. */
+    document.documentElement.dataset.platform = platform;
+    /* Resolves per platform, so this no longer overwrites the served <title>
+       with the other site's — the failure this line has caused before. */
     document.title = dict.siteTitle;
-  }, [lang, theme, dict]);
+  }, [lang, theme, dict, platform]);
 
   const context = useMemo(() => ({ lang, setLang: requestLang }), [lang, requestLang]);
   const session = useTelegramSession();
@@ -76,7 +83,7 @@ export default function App() {
   return (
     <LangContext.Provider value={context}>
       <SessionContext.Provider value={session}>
-        <div className="page" data-theme={theme}>
+        <div className="page" data-theme={theme} data-platform={platform}>
           {veil && <div className="veil" aria-hidden="true" />}
 
           <header className="page__header">

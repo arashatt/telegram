@@ -1,4 +1,4 @@
-import { CHOICE_FIELDS, labelFor } from "../../shared/formSchema.js";
+import { choiceFieldsFor, labelFor } from "../../shared/formSchema.js";
 import {
   labelFor as questionLabel,
   moduleFields,
@@ -15,6 +15,8 @@ const SUMMARY_ORDER = [
   "botType",
   "features",
   "botLanguages",
+  "igHandle",
+  "igAccount",
   "audience",
   "scale",
   "integrations",
@@ -32,24 +34,25 @@ const SUMMARY_ORDER = [
 /* Replaces the form in the stream once the brief is away: same information,
    read-only, so the visitor can still see exactly what the team received. */
 export default function Receipt({ form, reference, modules = [], questions = [], answers = {} }) {
-  const { t, lang } = useI18n();
+  const { t, lang, platform } = useI18n();
+  const choiceFields = choiceFieldsFor(platform);
 
   const rows = SUMMARY_ORDER.map((field) => {
     const value = form[field];
-    const spec = CHOICE_FIELDS[field];
+    const spec = choiceFields[field];
     if (spec?.multiple) {
       return Array.isArray(value) && value.length
-        ? [field, value.map((v) => labelFor(field, v, lang)).join(listSeparator(lang))]
+        ? [field, value.map((v) => labelFor(field, v, lang, platform)).join(listSeparator(lang))]
         : null;
     }
     if (!value) return null;
-    return [field, spec ? labelFor(field, value, lang) : value];
+    return [field, spec ? labelFor(field, value, lang, platform) : value];
   }).filter(Boolean);
 
   /* Rendered from the same plan the form used, so the receipt shows exactly
      the questions this visitor was asked. */
   const tailored = [
-    ...moduleFields(modules).map((field) => {
+    ...moduleFields(modules, platform).map((field) => {
       const value = answers[field.key];
       if (value == null || value === "" || (Array.isArray(value) && !value.length)) return null;
       const rendered = Array.isArray(value)

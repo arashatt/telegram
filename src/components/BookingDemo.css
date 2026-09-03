@@ -447,6 +447,72 @@
   to { opacity: 1; transform: none; }
 }
 
+/* ---- Instagram chrome ----
+   The same phone and the same state machine, dressed as a direct message
+   rather than a Telegram chat. Presentation only: nothing here changes what
+   the demo does, so the behaviour tests hold for both sites.
+
+   Three real differences, not decoration. Instagram's DM header is a light
+   bar with dark text, not a coloured one. Its bubbles are fully rounded with
+   no speaker tail. And its quick replies are outlined pills in a row that
+   scrolls, not a grid of keyboard keys — which is why the same buttons are
+   laid out differently here. */
+.bkd--instagram .bkd__chathead {
+  background: var(--surface);
+  color: var(--ink);
+  border-block-end: 1px solid var(--line);
+}
+
+.bkd--instagram .bkd__avatar {
+  background: var(--tg-blue);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--tg-blue);
+}
+
+.bkd--instagram .bkd__sub {
+  color: var(--ink-muted);
+  opacity: 1;
+}
+
+.bkd--instagram .bkd__bubble {
+  border-radius: 20px;
+  padding: 9px 13px;
+}
+
+/* No tail: an Instagram bubble is the same shape whoever sent it. */
+.bkd--instagram .bkd__row--in .bkd__bubble,
+.bkd--instagram .bkd__row--out .bkd__bubble {
+  border-start-start-radius: 20px;
+  border-end-end-radius: 20px;
+}
+
+.bkd--instagram .bkd__keys,
+.bkd--instagram .bkd__keys--size,
+.bkd--instagram .bkd__keys--time {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block-end: 2px;
+}
+
+.bkd--instagram .bkd__keys::-webkit-scrollbar {
+  display: none;
+}
+
+.bkd--instagram .bkd__key {
+  flex: 0 0 auto;
+  min-width: 62px;
+  padding-inline: 15px;
+  border-radius: 999px;
+  border-color: var(--tg-blue);
+}
+
+.bkd--instagram .bkd__composer {
+  border-radius: 999px;
+}
+
 @media (max-width: 720px) {
   .bkd__body {
     grid-template-columns: minmax(0, 1fr);

@@ -3,6 +3,7 @@
    Needs the Vazirmatn + JetBrains Mono webfonts (see README). */
 
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "../i18n.js";
 import "./CodeFilm.css";
 
 /* ---- timing helpers ---- */
@@ -70,6 +71,15 @@ function Captions({ T, items, style }) {
 
 const W = 1600, H = 900;
 const CX = W / 2, CY = H / 2;
+
+/* The film shows the Worker behind whichever page it is on — and it is the
+   same Worker, delivering to the same team chat, so the quoted source is true
+   on both sites. Only the two places that name what is being *built* are
+   looked up. */
+const SUBJECT = {
+  telegram: { heading: 'New Telegram bot request', title: ['A Telegram bot,', 'assembled'] },
+  instagram: { heading: 'New Instagram bot request', title: ['An Instagram bot,', 'assembled'] },
+};
 
 /* ---- palette (Telegram Native: cool blue, dark IDE) ---- */
 const C = {
@@ -266,7 +276,7 @@ const BRIEF_LINES = [
   { label: 'Telegram', value: '@example_customer' },
 ];
 
-function ChatPanel({ T, CUES }) {
+function ChatPanel({ T, CUES, subject }) {
   const bi = MOTION.enter(CUES.Intake + 0.35, 0.5)(T);
   const typing = T > CUES.Intake + 1.15 && T < CUES.Intake + 2.0;
   const bo = MOTION.enter(CUES.Intake + 2.0, 0.5)(T);
@@ -329,12 +339,13 @@ function ChatPanel({ T, CUES }) {
               {BRIEF_LINES.map((row, i) => {
                 const at = CUES.Brief + 0.55 + i * 0.2;
                 const o = MOTION.enter(at, 0.32)(T);
+                const head = row.head ? subject.heading : null;
                 if (row.head) {
                   return (
                     <div key={i} style={{
                       font: `700 ${i === 0 ? 17 : 15}px ${UI}`, color: '#fff', opacity: o,
                       marginTop: i === 0 ? 0 : 9, marginBottom: 3, transform: `translateX(${(1 - o) * -8}px)`,
-                    }}>{row.icon} {row.head}</div>
+                    }}>{row.icon} {head}</div>
                   );
                 }
                 return (
@@ -414,7 +425,7 @@ const TREE = [
   { name: 'session.js' },
 ];
 
-function Piece({ T, accent, captions }) {
+function Piece({ T, accent, captions, subject }) {
   const total = TOTAL;
 
   const cueOf = (name) => CUES[name];
@@ -530,7 +541,7 @@ function Piece({ T, accent, captions }) {
 
             {/* chat panel */}
             <div style={{ flex: 1, position: 'relative', borderLeft: `1px solid ${C.line}` }}>
-              <ChatPanel T={T} CUES={CUES} />
+              <ChatPanel T={T} CUES={CUES} subject={subject} />
             </div>
           </div>
         </div>
@@ -543,7 +554,9 @@ function Piece({ T, accent, captions }) {
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ font: `500 20px ${MONO}`, color: accent, letterSpacing: '0.24em', marginBottom: 18 }}>WORKER/</div>
-          <div style={{ font: `600 62px/1.1 ${UI}`, color: '#eaf3fa', letterSpacing: '-0.02em' }}>A Telegram bot,<br />assembled</div>
+          <div style={{ font: `600 62px/1.1 ${UI}`, color: '#eaf3fa', letterSpacing: '-0.02em' }}>
+            {subject.title[0]}<br />{subject.title[1]}
+          </div>
           <div style={{ font: `400 22px ${UI}`, color: C.dim, marginTop: 18 }}>seven files · one request · one brief</div>
         </div>
       </div>
@@ -582,6 +595,8 @@ export default function CodeFilm({
   paused = false,
   pauseOffscreen = false,
 }) {
+  const { platform } = useI18n();
+  const subject = SUBJECT[platform] ?? SUBJECT.telegram;
   const [stillFrame] = useState(prefersStill);
   const [T, setT] = useState(() => (prefersStill() ? CUES.Deliver + 1.7 : 0));
   const [scale, setScale] = useState(1);
@@ -629,7 +644,7 @@ export default function CodeFilm({
   return (
     <div ref={box} className={"code-film " + className}>
       <div className="code-film__stage" style={{ width: W, height: H, transform: "scale(" + scale + ")" }}>
-        <Piece T={T} accent={accent} captions={captions} />
+        <Piece T={T} accent={accent} captions={captions} subject={subject} />
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { LIMITS, SUMMARY_MIN, validateForm } from "../shared/formSchema.js";
+import { platformId } from "../shared/platforms.js";
 import {
   sanitizeAnswers,
   sanitizeModules,
@@ -90,6 +91,7 @@ async function handleChatStream(request, env) {
   if (messages.length === 0) return json({ error: "no_messages" }, 400);
 
   const submitted = Boolean(body?.formSubmitted);
+  const platform = platformId(body?.platform);
   const sse = (stream) =>
     new Response(stream, {
       headers: {
@@ -103,7 +105,7 @@ async function handleChatStream(request, env) {
     try {
       return sse(
         await streamChat(env, {
-          system: chatSystemPrompt(lang, submitted, { reasoning: true }),
+          system: chatSystemPrompt(lang, submitted, { reasoning: true, platform }),
           messages,
         })
       );
@@ -116,7 +118,7 @@ async function handleChatStream(request, env) {
 
   const stream = await env.AI.run(chatModel(env), {
     messages: [
-      { role: "system", content: chatSystemPrompt(lang, submitted) },
+      { role: "system", content: chatSystemPrompt(lang, submitted, { platform }) },
       ...messages,
     ],
     max_tokens: 400,
@@ -149,7 +151,8 @@ async function handleExtract(request, env) {
   const text = typeof body?.text === "string" ? body.text.trim().slice(0, 4000) : "";
   if (!text) return json({ prefill: {} });
 
-  const prompt = extractionMessages(text, lang);
+  const platform = platformId(body?.platform);
+  const prompt = extractionMessages(text, lang, platform);
 
   /* Same prompt, same parser, same sanitisers for both models — only the one
      that answers differs, so a form built by Claude and a form built by
@@ -169,8 +172,8 @@ async function handleExtract(request, env) {
   try {
     const parsed = parseJsonObject(await raw());
     return json({
-      prefill: withSummaryFallback(parsed ? sanitizePrefill(parsed) : {}, text),
-      modules: sanitizeModules(parsed?.modules),
+      prefill: withSummaryFallback(parsed ? sanitizePrefill(parsed, platform) : {}, text),
+      modules: sanitizeModules(parsed?.modules, platform),
       questions: sanitizeQuestions(parsed?.questions),
     });
   } catch (err) {
@@ -193,16 +196,17 @@ async function handleRequirements(request, env) {
   }
 
   const lang = normalizeLang(body?.lang);
-  const form = sanitizeForm(body?.form);
+  const platform = platformId(body?.platform);
+  const form = sanitizeForm(body?.form, platform);
 
   /* The tailored part of the form is rebuilt from the plan the browser sends
      back, then answers are filtered against it — so a crafted request cannot
      smuggle in fields that were never offered. */
-  const modules = sanitizeModules(body?.modules);
+  const modules = sanitizeModules(body?.modules, platform);
   const questions = sanitizeQuestions(body?.questions);
-  const answers = sanitizeAnswers(body?.answers, modules, questions);
+  const answers = sanitizeAnswers(body?.answers, modules, questions, platform);
 
-  const errors = validateForm(form);
+  const errors = validateForm(form, platform);
   if (Object.keys(errors).length) return json({ error: "invalid_form", errors }, 422);
 
   if (!isTelegramConfigured(env) && !env.REQUIREMENTS_WEBHOOK_URL) {
@@ -222,6 +226,7 @@ async function handleRequirements(request, env) {
   const submission = {
     reference,
     lang,
+    platform,
     form,
     modules,
     questions,

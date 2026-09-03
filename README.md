@@ -327,6 +327,49 @@ worker/
 the allowed option values and the validation rules exist once, so the form
 and the Worker cannot disagree about what a valid brief is.
 
+## Two sites
+
+`/` collects requirements for **Telegram bots**. `/instagram` collects them for
+**Instagram automations** — the same funnel, the same components, the same
+Worker, with the subject matter swapped. Nothing on the main page links to it,
+so it is reachable only by its URL, and it carries `noindex` so it stays out of
+search until it has a domain of its own.
+
+They are one codebase with a `platform` discriminator (`shared/platforms.js`),
+not a fork. What it selects:
+
+| What | Where |
+| --- | --- |
+| Copy | `src/copy.instagram.js` overrides ~25 of the keys in `src/i18n.js` |
+| Bot types and features | `choiceFieldsFor(platform)` in `shared/formSchema.js` |
+| The question bank | modules are tagged `on: [...]` in `shared/questionModules.js` |
+| Accent colour | `[data-platform="instagram"]` in `src/index.css` |
+| The demo's chrome | `.bkd--instagram` in `src/components/BookingDemo.css` |
+| The Worker's prompts and the brief heading | `worker/intake.js`, `worker/telegram.js` |
+
+The client sends `platform` with every API call; the Worker runs it through
+`platformId()` first, which falls back to `telegram` for anything it does not
+recognise. That matters for more than copy: the platform chooses **which
+allow-list a submission is validated against**, so a Telegram-only feature
+value in an Instagram submission is dropped rather than trusted.
+
+Both sites deliver to the same Telegram chat, and each brief's heading says
+which one it came from. Sign-in is Telegram's on both, because that is what it
+actually is.
+
+Each page is its own HTML entry (`index.html`, `instagram.html`), built via
+`environments.client.build.rollupOptions.input` in `vite.config.js` — scoped to
+the client environment because the Cloudflare plugin builds the Worker as a
+second environment and would otherwise be handed the HTML entries too. That is
+what gives each page its own `<title>`, description and robots rule; a shared
+SPA route could not.
+
+### Moving the Instagram page to its own domain
+
+Nothing here blocks it. The same Worker serves both, so a new domain needs its
+root mapped to `instagram.html`; the page itself reads its platform from its
+entry point, not from the URL, so it does not care what path it is served at.
+
 ## The live demo
 
 `BookingDemo.jsx` is a phone-shaped mock-up of a booking bot on the landing

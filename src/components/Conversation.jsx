@@ -50,7 +50,7 @@ async function readStream(response, onToken) {
 }
 
 export default function Conversation() {
-  const { t, lang, setLang } = useI18n();
+  const { t, lang, setLang, platform } = useI18n();
 
   const [items, setItems] = useState([]);
   const [input, setInput] = useState("");
@@ -96,7 +96,7 @@ export default function Conversation() {
         const res = await fetch("/api/extract", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, lang }),
+          body: JSON.stringify({ text, lang, platform }),
         });
         if (!res.ok) return { prefill: {}, modules: [], questions: [] };
         const data = await res.json();
@@ -109,7 +109,7 @@ export default function Conversation() {
         return { prefill: {}, modules: [], questions: [] };
       }
     },
-    [lang]
+    [lang, platform]
   );
 
   const send = useCallback(
@@ -150,6 +150,7 @@ export default function Conversation() {
           body: JSON.stringify({
             messages: history,
             lang,
+            platform,
             formSubmitted: submitted,
           }),
         });
@@ -190,7 +191,7 @@ export default function Conversation() {
         setBusy(false);
       }
     },
-    [fetchPrefill, items, lang, setLang, submitted, transcript]
+    [fetchPrefill, items, lang, platform, setLang, submitted, transcript]
   );
 
   function handleSubmit(event) {
@@ -214,6 +215,7 @@ export default function Conversation() {
       body: JSON.stringify({
         form,
         lang,
+        platform,
         transcript: transcript(),
         website: extras.website ?? "",
         modules: extras.modules ?? [],

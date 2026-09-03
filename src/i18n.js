@@ -1,4 +1,7 @@
 import { createContext, useContext } from "react";
+import { instagramCopy } from "./copy.instagram.js";
+import { PlatformContext } from "./platform.js";
+import { platformId } from "../shared/platforms.js";
 
 export const LANGS = ["en", "fa"];
 export const DEFAULT_LANG = "en";
@@ -347,11 +350,26 @@ export const LangContext = createContext({
   setLang: () => {},
 });
 
+/* The Telegram dictionary is the base and is never edited for the second site;
+   the Instagram site is that dictionary with ~25 keys replaced. Keeping it an
+   overlay rather than a second full dictionary means a copy change made for
+   one site reaches the other unless it was deliberately overridden — which is
+   the behaviour you want when 80% of the words are shared.
+
+   Keys prefixed `ig` exist only in the overlay: they label fields that appear
+   on the Instagram site alone. */
+export function dictFor(platform, lang) {
+  const base = translations[lang] ?? translations[DEFAULT_LANG];
+  if (platformId(platform) !== "instagram") return base;
+  return { ...base, ...(instagramCopy[lang] ?? instagramCopy.en) };
+}
+
 export function useI18n() {
   const { lang, setLang } = useContext(LangContext);
-  const dict = translations[lang] ?? translations[DEFAULT_LANG];
-  const t = (key) => dict[key] ?? translations.en[key] ?? key;
-  return { lang, setLang, t, dir: dirFor(lang) };
+  const platform = platformId(useContext(PlatformContext));
+  const dict = dictFor(platform, lang);
+  const t = (key) => dict[key] ?? dictFor(platform, "en")[key] ?? key;
+  return { lang, setLang, t, dir: dirFor(lang), platform };
 }
 
 /* Validation codes from shared/formSchema.js -> translation keys. */

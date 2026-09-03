@@ -11,6 +11,8 @@
    Modules stay small on purpose. The form was overwhelming once already; the
    point here is questions that are more relevant, not more of them. */
 
+import { isInstagram } from "./platforms.js";
+
 export const MAX_MODULES = 2;
 export const MAX_QUESTIONS = 3;
 export const MAX_QUESTION_CHARS = 160;
@@ -21,6 +23,7 @@ const o = (value, en, fa) => ({ value, en, fa });
 
 export const MODULES = {
   shop: {
+    on: ["telegram", "instagram"],
     en: "Selling & payments",
     fa: "فروش و پرداخت",
     fields: [
@@ -42,6 +45,7 @@ export const MODULES = {
   },
 
   support: {
+    on: ["telegram", "instagram"],
     en: "Support workload",
     fa: "بار پشتیبانی",
     fields: [
@@ -66,6 +70,7 @@ export const MODULES = {
   },
 
   booking: {
+    on: ["telegram", "instagram"],
     en: "Bookings",
     fa: "رزرو و نوبت",
     fields: [
@@ -80,6 +85,7 @@ export const MODULES = {
   },
 
   notifications: {
+    on: ["telegram"],
     en: "Alerts & notifications",
     fa: "اطلاع‌رسانی و هشدار",
     fields: [
@@ -99,6 +105,7 @@ export const MODULES = {
   },
 
   community: {
+    on: ["telegram"],
     en: "Group & channel management",
     fa: "مدیریت گروه و کانال",
     fields: [
@@ -114,6 +121,7 @@ export const MODULES = {
   },
 
   content: {
+    on: ["telegram", "instagram"],
     en: "Content",
     fa: "محتوا",
     fields: [
@@ -127,6 +135,7 @@ export const MODULES = {
   },
 
   automation: {
+    on: ["telegram", "instagram"],
     en: "Internal automation",
     fa: "اتوماسیون داخلی",
     fields: [
@@ -140,6 +149,7 @@ export const MODULES = {
   },
 
   miniapp: {
+    on: ["telegram"],
     en: "Mini App",
     fa: "مینی‌اپ",
     fields: [
@@ -153,6 +163,7 @@ export const MODULES = {
   },
 
   ai: {
+    on: ["telegram", "instagram"],
     en: "AI replies",
     fa: "پاسخ‌های هوش مصنوعی",
     fields: [
@@ -166,6 +177,7 @@ export const MODULES = {
   },
 
   data: {
+    on: ["telegram", "instagram"],
     en: "Data & reporting",
     fa: "داده و گزارش",
     fields: [
@@ -177,23 +189,84 @@ export const MODULES = {
       ]),
     ],
   },
+
+  comments: {
+    on: ["instagram"],
+    en: "Comments & stories",
+    fa: "کامنت و استوری",
+    fields: [
+      f("comments.trigger", "text", "Which words or posts should trigger a reply?", "چه کلمه یا پستی پاسخ خودکار بگیرد؟"),
+      f("comments.reply", "select", "Where should the reply go?", "پاسخ کجا داده شود؟", [
+        o("dm", "Into a direct message", "در دایرکت"),
+        o("public", "As a public comment reply", "به‌صورت پاسخ عمومی"),
+        o("both", "Both", "هر دو"),
+      ]),
+      f("comments.stories", "select", "Handle story replies and mentions?", "پاسخ استوری و منشن هم باشد؟", [
+        o("yes", "Yes", "بله"),
+        o("no", "No", "خیر"),
+        o("unsure", "Not sure yet", "هنوز مشخص نیست"),
+      ]),
+    ],
+  },
+
+  leads: {
+    on: ["instagram"],
+    en: "Lead capture",
+    fa: "جذب مشتری",
+    fields: [
+      f("leads.qualify", "text", "What must you know before a lead is worth following up?", "پیش از پیگیری، چه اطلاعاتی از مشتری لازم دارید؟"),
+      f("leads.destination", "text", "Where should the leads land?", "اطلاعات مشتری‌ها کجا ذخیره شود؟"),
+    ],
+  },
+
+  /* Instagram cannot push freely: outside a 24-hour window since the person
+     last wrote, a message needs their opt-in. The question is therefore about
+     consent, not cadence — which is why this is a separate module from the
+     Telegram "notifications" one rather than a reworded version of it. */
+  broadcasts: {
+    on: ["instagram"],
+    en: "Follow-ups & broadcasts",
+    fa: "پیگیری و پیام گروهی",
+    fields: [
+      f("broadcasts.purpose", "text", "What would you send after the first conversation?", "بعد از گفتگوی اول چه پیامی می‌فرستید؟"),
+      f("broadcasts.optin", "select", "How will people opt in to hear from you?", "کاربران چطور رضایت می‌دهند؟", [
+        o("inchat", "Asked in the chat", "در همان گفتگو پرسیده می‌شود"),
+        o("existing", "We already have consent", "از قبل رضایت گرفته‌ایم"),
+        o("unsure", "Not sure yet", "هنوز مشخص نیست"),
+      ]),
+    ],
+  },
 };
 
-export const MODULE_IDS = Object.keys(MODULES);
-
-export function moduleFields(ids = []) {
-  return ids.flatMap((id) => MODULES[id]?.fields ?? []);
+/* Modules the given site offers. A Telegram-only module reaching an Instagram
+   submission (or the reverse) would ask a question that was never on screen,
+   so every entry point filters by platform rather than trusting the id. */
+export function modulesFor(platform) {
+  const site = isInstagram(platform) ? "instagram" : "telegram";
+  return Object.fromEntries(
+    Object.entries(MODULES).filter(([, module]) => module.on.includes(site))
+  );
 }
 
-export function fieldByKey(ids, key) {
-  return moduleFields(ids).find((field) => field.key === key) ?? null;
+export function moduleIdsFor(platform) {
+  return Object.keys(modulesFor(platform));
 }
 
-/* Only ids from the bank, deduplicated and capped — a model that asks for
-   every module does not get to rebuild the overwhelming form. */
-export function sanitizeModules(input) {
+export function moduleFields(ids = [], platform) {
+  const bank = modulesFor(platform);
+  return ids.flatMap((id) => bank[id]?.fields ?? []);
+}
+
+export function fieldByKey(ids, key, platform) {
+  return moduleFields(ids, platform).find((field) => field.key === key) ?? null;
+}
+
+/* Only ids from this site's bank, deduplicated and capped — a model that asks
+   for every module does not get to rebuild the overwhelming form. */
+export function sanitizeModules(input, platform) {
   if (!Array.isArray(input)) return [];
-  return [...new Set(input.filter((id) => typeof id === "string" && MODULES[id]))].slice(
+  const bank = modulesFor(platform);
+  return [...new Set(input.filter((id) => typeof id === "string" && bank[id]))].slice(
     0,
     MAX_MODULES
   );
@@ -215,11 +288,11 @@ export function sanitizeQuestions(input) {
 
 /* Answers are keyed by field, so anything not offered to this visitor is
    dropped rather than trusted. */
-export function sanitizeAnswers(answers, modules, questions) {
+export function sanitizeAnswers(answers, modules, questions, platform) {
   const clean = {};
   if (!answers || typeof answers !== "object") return clean;
 
-  for (const field of moduleFields(modules)) {
+  for (const field of moduleFields(modules, platform)) {
     const value = answers[field.key];
     if (field.type === "checks") {
       if (!Array.isArray(value)) continue;

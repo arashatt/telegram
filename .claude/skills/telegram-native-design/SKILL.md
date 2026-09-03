@@ -127,6 +127,26 @@ the Latin count). One-way, never persisted, no button.
 the entire point: the RTL/LTR reflow is never seen, so no separate page fade
 is needed.
 
+## Two sites, one system
+
+There is a second intake site at `/instagram`, for Instagram automation work.
+It is the same components, the same layout and the same tokens — the only
+visual difference is the accent, redefined under `[data-platform="instagram"]`
+on the root element (`src/index.css`). No component knows which site it is
+rendering, because no component names a colour.
+
+The token names keep the `--tg-` prefix on both sites. They mean "the site's
+accent", not "Telegram's blue"; they are consumed in 74 places and renaming
+them would touch all of them to say the same thing.
+
+`--provider-blue` is the exception that stays fixed on both: the sign-in
+really is Telegram's everywhere, and its button should read as its provider.
+Nothing else may use it — the demo's CTA used to, and now takes `.pill`.
+
+Copy follows the same shape: `src/i18n.js` is the base, `src/copy.instagram.js`
+overrides only the ~25 keys that differ. A copy change made once reaches both
+sites unless it was deliberately overridden.
+
 ## The one tokenless surface
 
 `CodeFilm.jsx` is a fixed dark artifact — a code editor, the way an embedded

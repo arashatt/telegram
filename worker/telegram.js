@@ -1,4 +1,5 @@
-import { CHOICE_FIELDS, labelFor } from "../shared/formSchema.js";
+import { choiceFieldsFor, labelFor } from "../shared/formSchema.js";
+import { isInstagram, platformLabel } from "../shared/platforms.js";
 import {
   labelFor as questionLabel,
   moduleFields,
@@ -23,6 +24,8 @@ const FIELD_TITLES = {
   botType: ["Category", "دسته‌بندی"],
   features: ["Features", "امکانات"],
   botLanguages: ["Bot languages", "زبان‌های ربات"],
+  igHandle: ["Instagram account", "اکانت اینستاگرام"],
+  igAccount: ["Account type", "نوع اکانت"],
   audience: ["Audience", "مخاطب"],
   scale: ["Expected users", "تعداد کاربران"],
   integrations: ["Integrations", "اتصال‌ها"],
@@ -38,7 +41,7 @@ const FIELD_TITLES = {
 };
 
 const SECTIONS = [
-  ["🤖", ["The bot", "ربات"], ["botName", "summary", "botType", "features", "botLanguages"]],
+  ["🤖", ["The bot", "ربات"], ["botName", "summary", "botType", "features", "botLanguages", "igHandle", "igAccount"]],
   ["📐", ["Scope", "دامنه"], ["audience", "scale", "integrations", "hosting", "timeline", "budget"]],
   ["📇", ["Contact", "تماس"], ["contactName", "company", "email", "telegram", "phone", "notes"]],
 ];
@@ -49,29 +52,43 @@ function title(field, lang) {
   return lang === "fa" ? pair[1] : pair[0];
 }
 
-function renderValue(field, value, lang) {
+function renderValue(field, value, lang, platform) {
   if (value == null || value === "") return null;
-  const spec = CHOICE_FIELDS[field];
+  const spec = choiceFieldsFor(platform)[field];
   if (spec?.multiple) {
     if (!Array.isArray(value) || value.length === 0) return null;
-    return value.map((v) => labelFor(field, v, lang)).join(lang === "fa" ? "، " : ", ");
+    return value.map((v) => labelFor(field, v, lang, platform)).join(lang === "fa" ? "، " : ", ");
   }
-  if (spec) return labelFor(field, value, lang);
+  if (spec) return labelFor(field, value, lang, platform);
   return String(value);
 }
 
 /* One brief -> an array of HTML lines. Lines are the chunking unit, so each
    one keeps its tags balanced and a split can never land mid-tag. */
 export function buildBriefLines(submission) {
-  const { form, lang = "en", transcript = [], meta = {}, verified = null } = submission;
-  const heading =
-    lang === "fa" ? "درخواست جدید ساخت ربات تلگرام" : "New Telegram bot request";
+  const {
+    form,
+    lang = "en",
+    transcript = [],
+    meta = {},
+    verified = null,
+    platform,
+  } = submission;
+
+  /* Both sites deliver here, so the heading says which one sent it. */
+  const heading = isInstagram(platform)
+    ? lang === "fa"
+      ? "درخواست جدید ربات اینستاگرام"
+      : "New Instagram bot request"
+    : lang === "fa"
+      ? "درخواست جدید ساخت ربات تلگرام"
+      : "New Telegram bot request";
 
   const lines = [`<b>📨 ${escapeHtml(heading)}</b>`, ""];
 
   for (const [icon, names, fields] of SECTIONS) {
     const rendered = fields
-      .map((field) => [field, renderValue(field, form?.[field], lang)])
+      .map((field) => [field, renderValue(field, form?.[field], lang, platform)])
       .filter(([, value]) => value !== null);
     if (rendered.length === 0) continue;
 
@@ -85,7 +102,7 @@ export function buildBriefLines(submission) {
   /* The questions this visitor was actually asked, with their answers. Kept
      in its own section because the fields differ from brief to brief. */
   const tailored = [];
-  for (const field of moduleFields(submission.modules ?? [])) {
+  for (const field of moduleFields(submission.modules ?? [], platform)) {
     const value = (submission.answers ?? {})[field.key];
     if (value == null || value === "" || (Array.isArray(value) && !value.length)) continue;
     const rendered = Array.isArray(value)
@@ -217,13 +234,17 @@ export async function notifyVisitor(env, submission) {
   if (!token || !userId) return { sent: false, reason: "not configured" };
 
   const fa = submission.lang === "fa";
+  /* Names the kind of bot they asked about, not the channel this message
+     arrives on — the reply always comes over Telegram, because that is where
+     they signed in. */
+  const subject = platformLabel(submission.platform, fa ? "fa" : "en");
   const text = [
     `<b>${escapeHtml(fa ? "درخواست شما ثبت شد" : "Your brief has been received")}</b>`,
     "",
     escapeHtml(
       fa
-        ? "درخواست ساخت ربات تلگرام شما به تیم ما رسید و به‌زودی همین‌جا پاسخ می‌دهیم."
-        : "Your Telegram bot brief reached our team. We will reply here shortly."
+        ? `درخواست ساخت ربات ${subject} شما به تیم ما رسید و به‌زودی همین‌جا پاسخ می‌دهیم.`
+        : `Your ${subject} bot brief reached our team. We will reply here shortly.`
     ),
     "",
     `<code>${escapeHtml(submission.reference ?? "")}</code>`,

@@ -53,6 +53,10 @@ TELEGRAM_CLIENT_SECRET=your-oidc-client-secret
 # Point the SDK at a gateway rather than the API. Unset in normal use.
 # ANTHROPIC_BASE_URL=https://gateway.example.com/anthropic
 
+# Nothing extra is needed for the Instagram site at /instagram: it shares this
+# Worker, these secrets and this delivery chat. Each brief's heading says which
+# site it came from.
+
 # Workers AI models — the fallback whenever Claude is unavailable, and the
 # only models used when no Anthropic key is set.
 # `npx wrangler ai models` lists what your account can run.
