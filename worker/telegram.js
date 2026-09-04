@@ -78,8 +78,8 @@ export function buildBriefLines(submission) {
   /* Both sites deliver here, so the heading says which one sent it. */
   const heading = isInstagram(platform)
     ? lang === "fa"
-      ? "درخواست جدید ربات اینستاگرام"
-      : "New Instagram bot request"
+      ? "درخواست جدید اتوماسیون اینستاگرام"
+      : "New Instagram automation request"
     : lang === "fa"
       ? "درخواست جدید ساخت ربات تلگرام"
       : "New Telegram bot request";

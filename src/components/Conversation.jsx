@@ -3,7 +3,7 @@ import { useI18n } from "../i18n.js";
 import { looksPersian } from "../lang.js";
 import RequirementsForm from "./RequirementsForm.jsx";
 import Receipt from "./Receipt.jsx";
-import { BubbleMark, PlaneGlyph } from "./Icons.jsx";
+import { BubbleMark, SendGlyph } from "./Icons.jsx";
 import "./Conversation.css";
 
 let nextId = 0;
@@ -345,7 +345,7 @@ export default function Conversation() {
           disabled={composerDisabled || !input.trim()}
           aria-label={t("send")}
         >
-          <PlaneGlyph size={20} />
+          <SendGlyph size={20} platform={platform} />
         </button>
       </form>
     </div>

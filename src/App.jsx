@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Conversation from "./components/Conversation.jsx";
 import Landing from "./components/Landing.jsx";
 import SignIn from "./components/SignIn.jsx";
-import { BubbleMark, MoonIcon } from "./components/Icons.jsx";
+import { BubbleMark, CameraMark, MoonIcon } from "./components/Icons.jsx";
 import { DEFAULT_LANG, LangContext, dictFor, dirFor } from "./i18n.js";
 import { usePlatform } from "./platform.js";
 import { prefersPersian } from "./lang.js";
@@ -92,7 +92,13 @@ export default function App() {
                   fresh load is a fresh conversation. */}
               <a className="brand" href="/">
                 <span className="brand__disc">
-                  <BubbleMark size={19} />
+                  {/* Each site's own mark: a chat bubble for Telegram, a camera
+                      frame for Instagram. */}
+                  {platform === "instagram" ? (
+                    <CameraMark size={19} stroke="#fff" />
+                  ) : (
+                    <BubbleMark size={19} />
+                  )}
                 </span>
                 <span className="brand__title">{dict.tagline}</span>
               </a>

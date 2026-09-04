@@ -100,3 +100,50 @@ export function CommentGlyph({ size = 19 }) {
     </svg>
   );
 }
+
+/* The Instagram page's mark: a camera frame, drawn here rather than borrowed.
+   Stroked so it reads on the gradient chip and on a light ground alike. */
+export function CameraMark({ size = 19, stroke = "currentColor" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      stroke={stroke}
+      strokeWidth="2.7"
+      aria-hidden="true"
+    >
+      <rect x="3.2" y="3.2" width="25.6" height="25.6" rx="8" />
+      <circle cx="16" cy="16" r="6.3" />
+      <circle cx="23.6" cy="8.4" r="1.9" fill={stroke} stroke="none" />
+    </svg>
+  );
+}
+
+/* Send, as an up-arrow. Instagram's own send affordance is not a paper plane,
+   and the plane stays reserved for the Telegram sign-in on both sites. */
+export function ArrowSend({ size = 16 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 20V5" />
+      <path d="m5.6 11.4 6.4-6.4 6.4 6.4" />
+    </svg>
+  );
+}
+
+/* One send glyph, chosen by site. Callers already hold `platform` from
+   useI18n(), so this keeps the choice out of every call site's markup. */
+export function SendGlyph({ size, platform }) {
+  return platform === "instagram" ? <ArrowSend size={size} /> : <PlaneGlyph size={size} />;
+}

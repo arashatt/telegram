@@ -80,17 +80,12 @@
      --soft form — tinted bands. Never behind text. The warm end sits near
      L 0.7, where white falls under 3:1, which is why the CTA pill, the badge
      and the hot chip fills all stay flat. */
-  --ig-wash: linear-gradient(
-    135deg,
-    oklch(0.54 0.18 318),
-    oklch(0.55 0.2 5) 45%,
-    oklch(0.7 0.16 52)
-  );
+  --ig-wash: linear-gradient(135deg, #fcaf45 0%, #e1306c 48%, #833ab4 100%);
   --ig-wash-soft: linear-gradient(
     135deg,
-    oklch(0.54 0.18 318 / 0.1),
-    oklch(0.55 0.2 5 / 0.09) 45%,
-    oklch(0.7 0.16 52 / 0.12)
+    rgba(252, 175, 69, 0.14) 0%,
+    rgba(225, 48, 108, 0.12) 48%,
+    rgba(131, 58, 180, 0.12) 100%
   );
 }
 
@@ -101,17 +96,12 @@
   --bubble-out: #4a2033;
 
   /* Same hues, lifted for the dark ground. */
-  --ig-wash: linear-gradient(
-    135deg,
-    oklch(0.65 0.16 318),
-    oklch(0.66 0.18 5) 45%,
-    oklch(0.79 0.14 52)
-  );
+  --ig-wash: linear-gradient(135deg, #fcaf45 0%, #e1306c 48%, #833ab4 100%);
   --ig-wash-soft: linear-gradient(
     135deg,
-    oklch(0.65 0.16 318 / 0.16),
-    oklch(0.66 0.18 5 / 0.15) 45%,
-    oklch(0.79 0.14 52 / 0.18)
+    rgba(252, 175, 69, 0.2) 0%,
+    rgba(225, 48, 108, 0.18) 48%,
+    rgba(131, 58, 180, 0.18) 100%
   );
 }
 
@@ -120,6 +110,7 @@
    flourish rather than the site's accent. */
 [data-platform="instagram"] .brand__disc {
   background: var(--ig-wash);
+  border-radius: 11px;
 }
 
 * {

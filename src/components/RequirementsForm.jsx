@@ -18,7 +18,7 @@ import {
 } from "../../shared/questionModules.js";
 import { errorMessage, useI18n } from "../i18n.js";
 import { contactFromUser, useSession } from "../session.js";
-import { PlaneGlyph } from "./Icons.jsx";
+import { SendGlyph } from "./Icons.jsx";
 import TelegramLogin from "./TelegramLogin.jsx";
 import "./RequirementsForm.css";
 
@@ -305,7 +305,7 @@ export default function RequirementsForm({
           </p>
         )}
         <button type="submit" className="pill reqform__submit" disabled={submitting}>
-          <PlaneGlyph />
+          <SendGlyph platform={platform} />
           {submitting ? t("submitting") : t("submit")}
         </button>
       </footer>

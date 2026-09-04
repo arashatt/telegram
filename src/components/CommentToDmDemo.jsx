@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n.js'
-import { BubbleMark, CheckIcon, CommentGlyph, HeartGlyph, PlaneGlyph } from './Icons.jsx'
+import { BubbleMark, CheckIcon, CommentGlyph, HeartGlyph, SendGlyph } from './Icons.jsx'
 import './CommentToDmDemo.css'
 
 /* The dictionary holds plain strings, so the few lines with a value in them
@@ -72,7 +72,7 @@ export default function CommentToDmDemo({
   autoplay = true,
   loopSpeed = 1,
 }) {
-  const { t, lang } = useI18n()
+  const { t, lang, platform } = useI18n()
 
   /* The page can change language under the demo. The scripted lines are
      rebuilt when it does — the loop restarts from the post anyway. */
@@ -322,7 +322,7 @@ export default function CommentToDmDemo({
                   <div className="ctd__actions" aria-hidden="true">
                     <HeartGlyph />
                     <CommentGlyph />
-                    <PlaneGlyph size={19} />
+                    <SendGlyph size={19} platform={platform} />
                   </div>
 
                   <div className="ctd__caption">
@@ -478,7 +478,7 @@ export default function CommentToDmDemo({
                     <div className="ctd__composer" aria-hidden="true">
                       <span className="ctd__field">{t('demoComposer')}</span>
                       <span className="ctd__send">
-                        <PlaneGlyph />
+                        <SendGlyph platform={platform} />
                       </span>
                     </div>
                   </div>
@@ -514,7 +514,7 @@ export default function CommentToDmDemo({
             {/* The accent pill, not the provider one: --provider-blue is
                 Telegram's own blue and belongs to the sign-in control alone. */}
             <a className="pill" href="#brief">
-              <PlaneGlyph />
+              <SendGlyph platform={platform} />
               {t('demoCta')}
             </a>
           </div>

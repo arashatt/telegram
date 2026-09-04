@@ -5,7 +5,7 @@ import CommentToDmDemo from "./CommentToDmDemo.jsx";
 import BotMark from "./BotMark.jsx";
 import CodeFilm from "./CodeFilm.jsx";
 import HubDiagram from "./HubDiagram.jsx";
-import { CheckIcon, PlaneGlyph } from "./Icons.jsx";
+import { CheckIcon, SendGlyph } from "./Icons.jsx";
 import "./Landing.css";
 
 /* Everything above the intake. The three trust cards and the checklist are
@@ -33,7 +33,7 @@ export default function Landing({ children }) {
           <p className="hero__body">{t("heroBody")}</p>
           <div className="hero__actions">
             <a className="pill pill--lg" href="#brief">
-              <PlaneGlyph size={17} />
+              <SendGlyph size={17} platform={platform} />
               {t("heroPrimary")}
             </a>
             <a className="pill pill--lg pill--ghost" href="#how">
@@ -62,6 +62,9 @@ export default function Landing({ children }) {
         </div>
       </section>
 
+      {/* Not selected for the Instagram page: its three claims are written and
+          ready in src/i18n.js if that changes. */}
+      {!isInstagram(platform) && (
       <section className="trust">
         {trust.map(([kicker, title, body]) => (
           <article className="trust__card" key={kicker}>
@@ -71,6 +74,7 @@ export default function Landing({ children }) {
           </article>
         ))}
       </section>
+      )}
 
       {/* The film's caption track is English only, so it is shown only on the
           English page rather than captioning a Persian one in English. */}

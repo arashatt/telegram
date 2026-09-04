@@ -2,7 +2,7 @@
    Self-contained: no animation engine, one requestAnimationFrame clock.
    Needs the Vazirmatn + JetBrains Mono webfonts (see README). */
 
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n.js";
 import "./CodeFilm.css";
 
@@ -97,6 +97,34 @@ const C = {
   warn: '#ff8a5c',
 };
 const TOK = { k: '#59a9f5', s: '#6fd3a0', c: '#4d6a7d', f: '#e8c48a', p: '#8fa8ba', t: '#cfe0ec', n: '#f0a68a' };
+
+/* The film is a fixed dark artifact — a screen recording, effectively — so it
+   carries its own palette rather than the site's tokens. It still has to say
+   which site it belongs to, so there is one per platform, and the sub-
+   components read whichever is in play through context rather than a global. */
+const IG_C = {
+  page: '#0b070d',
+  chrome: '#150e1a',
+  win: '#120c17',
+  pane: '#0e0912',
+  panel: '#181020',
+  line: 'rgba(220,170,200,0.14)',
+  dim: '#8a7285',
+  text: '#f0e3ec',
+  in: '#241827',
+  out: '#7b1f52',
+  ok: '#4fce7d',
+  warn: '#ff8a5c',
+};
+const IG_TOK = { k: '#ff7eb0', s: '#8fe0b8', c: '#6b4f60', f: '#f7c66b', p: '#b79bab', t: '#f0e3ec', n: '#f0a68a' };
+
+const PALETTES = {
+  telegram: { C, TOK, caret: '#2ea6ff', avatar: 'linear-gradient(160deg,#2ea6ff,#1c6dbf)' },
+  instagram: { C: IG_C, TOK: IG_TOK, caret: '#ff4f8b', avatar: 'linear-gradient(135deg,#fcaf45,#e1306c 48%,#833ab4)' },
+};
+
+const PaletteContext = createContext(PALETTES.telegram);
+const usePalette = () => useContext(PaletteContext);
 const MONO = "'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace";
 const UI = "'Vazirmatn', system-ui, -apple-system, 'Segoe UI', sans-serif";
 
@@ -213,6 +241,7 @@ function revealed(lines, n) {
 }
 
 function CodeBlock({ block, chars, active, blink }) {
+  const { C, TOK, caret } = usePalette();
   const rows = revealed(block.lines, chars);
   return (
     <div style={{ opacity: active ? 1 : 0.26, transition: 'none' }}>
@@ -220,7 +249,7 @@ function CodeBlock({ block, chars, active, blink }) {
         display: 'flex', alignItems: 'center', gap: 10, height: HEAD_H,
         font: `500 15px ${MONO}`, color: active ? '#7fb6e6' : C.dim, letterSpacing: '0.02em',
       }}>
-        <span style={{ width: 6, height: 6, borderRadius: 6, background: active ? '#2ea6ff' : C.dim }}></span>
+        <span style={{ width: 6, height: 6, borderRadius: 6, background: active ? caret : C.dim }}></span>
         {block.file}
         <span style={{ color: C.dim, fontWeight: 400 }}>· {block.note}</span>
       </div>
@@ -235,7 +264,7 @@ function CodeBlock({ block, chars, active, blink }) {
                   <span key={j} style={{ color: TOK[cls] }}>{t}</span>
                 ))}
                 {row && row.cursor && blink ? (
-                  <span style={{ display: 'inline-block', width: 9, height: 18, background: '#2ea6ff', verticalAlign: '-3px' }}></span>
+                  <span style={{ display: 'inline-block', width: 9, height: 18, background: caret, verticalAlign: '-3px' }}></span>
                 ) : null}
               </span>
             </div>
@@ -248,6 +277,7 @@ function CodeBlock({ block, chars, active, blink }) {
 
 /* ---- chat panel pieces ---- */
 function Bubble({ side, children, o, y, tint, width }) {
+  const { C } = usePalette();
   return (
     <div style={{
       display: 'flex', justifyContent: side === 'out' ? 'flex-end' : 'flex-start',
@@ -276,7 +306,8 @@ const BRIEF_LINES = [
   { label: 'Telegram', value: '@example_customer' },
 ];
 
-function ChatPanel({ T, CUES, subject }) {
+function ChatPanel({ T, CUES, subject, platform }) {
+  const { C, avatar } = usePalette();
   const bi = MOTION.enter(CUES.Intake + 0.35, 0.5)(T);
   const typing = T > CUES.Intake + 1.15 && T < CUES.Intake + 2.0;
   const bo = MOTION.enter(CUES.Intake + 2.0, 0.5)(T);
@@ -299,7 +330,7 @@ function ChatPanel({ T, CUES, subject }) {
         borderBottom: `1px solid ${C.line}`, background: 'rgba(12,20,28,0.7)',
       }}>
         <div style={{
-          width: 32, height: 32, borderRadius: 32, background: 'linear-gradient(160deg,#2ea6ff,#1c6dbf)',
+          width: 32, height: 32, borderRadius: platform === 'instagram' ? 10 : 32, background: avatar,
           display: 'grid', placeItems: 'center', font: `600 15px ${UI}`, color: '#fff',
         }}>
           <svg width="17" height="17" viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -378,6 +409,7 @@ function ChatPanel({ T, CUES, subject }) {
 
 /* ---- request lane: packets entering the Worker ---- */
 function RequestLane({ T, CUES }) {
+  const { C } = usePalette();
   const packets = [
     { at: CUES.Router + 0.5, label: 'POST /api/requirements', kind: 'ok', dur: 1.5 },
     { at: CUES.Guard + 0.15, label: 'POST /api/chat/stream', kind: 'ok', dur: 1.0 },
@@ -425,7 +457,8 @@ const TREE = [
   { name: 'session.js' },
 ];
 
-function Piece({ T, accent, captions, subject }) {
+function Piece({ T, accent, captions, subject, platform }) {
+  const { C } = usePalette();
   const total = TOTAL;
 
   const cueOf = (name) => CUES[name];
@@ -541,7 +574,7 @@ function Piece({ T, accent, captions, subject }) {
 
             {/* chat panel */}
             <div style={{ flex: 1, position: 'relative', borderLeft: `1px solid ${C.line}` }}>
-              <ChatPanel T={T} CUES={CUES} subject={subject} />
+              <ChatPanel T={T} CUES={CUES} subject={subject} platform={platform} />
             </div>
           </div>
         </div>
@@ -597,6 +630,7 @@ export default function CodeFilm({
 }) {
   const { platform } = useI18n();
   const subject = SUBJECT[platform] ?? SUBJECT.telegram;
+  const palette = PALETTES[platform] ?? PALETTES.telegram;
   const [stillFrame] = useState(prefersStill);
   const [T, setT] = useState(() => (prefersStill() ? CUES.Deliver + 1.7 : 0));
   const [scale, setScale] = useState(1);
@@ -644,7 +678,9 @@ export default function CodeFilm({
   return (
     <div ref={box} className={"code-film " + className}>
       <div className="code-film__stage" style={{ width: W, height: H, transform: "scale(" + scale + ")" }}>
-        <Piece T={T} accent={accent} captions={captions} subject={subject} />
+        <PaletteContext.Provider value={palette}>
+          <Piece T={T} accent={accent} captions={captions} subject={subject} platform={platform} />
+        </PaletteContext.Provider>
       </div>
     </div>
   );
