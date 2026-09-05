@@ -150,7 +150,9 @@ body {
 .page__header-inner {
   max-width: var(--shell);
   margin: 0 auto;
-  padding: 10px var(--gutter);
+  /* The top inset is zero unless the app is drawing under a status bar; the
+     side insets are handled once on body, below. */
+  padding: calc(10px + env(safe-area-inset-top)) var(--gutter) 10px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -216,6 +218,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  /* "Sign in" broke over two lines in a phone-width header. A control's
+     label wraps only by accident. */
+  white-space: nowrap;
   border: none;
   border-radius: 999px;
   background: var(--tg-blue);
@@ -329,7 +334,7 @@ body {
 
 .langnotice {
   position: fixed;
-  inset-block-end: 30px;
+  inset-block-end: calc(30px + env(safe-area-inset-bottom));
   inset-inline: 0;
   display: flex;
   justify-content: center;
@@ -345,6 +350,15 @@ body {
   border-radius: 999px;
   box-shadow: var(--shadow-lift);
   animation: tgn-in 220ms ease-out;
+}
+
+/* Both of these dock to the bottom edge, and a visitor who writes Persian
+   while the install banner is up would otherwise get the notice laid across
+   it. The offset clears the tallest the banner gets — 145px, on a 320px
+   Android screen where the button drops to its own row — and applies only
+   while a banner is actually in the tree. */
+.page:has(.install) .langnotice {
+  inset-block-end: calc(160px + env(safe-area-inset-bottom));
 }
 
 @keyframes tgn-in {
@@ -368,6 +382,77 @@ body {
   30% {
     opacity: 1;
     transform: translateY(-3px);
+  }
+}
+
+/* ---- installed on a phone ----
+
+   Both sites are installable web apps — public/manifest.webmanifest and its
+   Instagram twin — so each has to hold up with no browser around it: no URL
+   bar to scroll away, a cutout or a home indicator overlapping the page, and
+   a finger where a pointer used to be.
+
+   Every env(safe-area-inset-*) here resolves to 0 on a desktop and on a phone
+   without a cutout, so none of it needs a media query to be safe. */
+
+/* Physical left and right rather than logical: a cutout is on a side of the
+   device and does not move when the page switches to RTL. Put on body so
+   every section inherits it at once — the fixed layers position against the
+   viewport instead and carry their own. */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* iOS enlarges text in landscape unless told not to, which breaks a layout
+   that has already been sized for the width. */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* A grey flash behind every tap is the clearest tell that an app is a web
+   page; touch-action drops the wait for a second tap that would have meant
+   zoom, which is where the old 300ms tap delay came from. */
+a,
+button,
+label,
+input,
+select,
+textarea,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a,
+button,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* On a phone the header is the mark and the controls, and nothing else. The
+   tagline is a sentence — "Instagram automations, built to your spec" — and at
+   this width it took three lines, making the sticky header a third of the
+   screen before the page had said anything. It is hidden rather than removed,
+   so the brand link keeps the accessible name this text gives it, and the
+   hero directly below carries the same message at full size. */
+@media (max-width: 480px) {
+  .brand__title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    clip-path: inset(50%);
+  }
+}
+
+@media (display-mode: standalone), (display-mode: minimal-ui) {
+  /* There is no browser here to pull down to refresh, so the rubber band at
+     the top is only the app coming unstuck from its own edge. */
+  body {
+    overscroll-behavior-y: contain;
   }
 }
 

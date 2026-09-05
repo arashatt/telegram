@@ -1,0 +1,84 @@
+{
+  "id": "/",
+  "name": "Telegram Bot Intake",
+  "short_name": "Bot Intake",
+  "description": "Describe the Telegram bot you want built and get a scoped quote. A short conversation, a two-minute form, and the brief goes to the team that builds it.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/telegram-narrow-1.jpg",
+      "sizes": "824x1784",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Describe the bot you want and get a scoped quote"
+    },
+    {
+      "src": "/screenshots/telegram-narrow-2.jpg",
+      "sizes": "824x1784",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "A working booking bot, live on the page"
+    },
+    {
+      "src": "/screenshots/telegram-wide.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "The intake page on a larger screen"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start a brief",
+      "short_name": "Brief",
+      "url": "/#brief",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

@@ -54,18 +54,13 @@ export default function HubDiagram() {
         </g>
       </svg>
 
-      <span className="hub__label" style={{ left: "50%", top: "11%" }}>
-        {t("hubCustomer")}
-      </span>
-      <span className="hub__label" style={{ left: "88%", top: "50%" }}>
-        {t("hubAdmin")}
-      </span>
-      <span className="hub__label" style={{ left: "50%", top: "89%" }}>
-        {t("hubDatabase")}
-      </span>
-      <span className="hub__label" style={{ left: "12%", top: "50%" }}>
-        {t("hubTeam")}
-      </span>
+      {/* Placed from the stylesheet rather than inline, so a narrow screen can
+          move the two side anchors inward — an inline style would outrank the
+          media query that does it. */}
+      <span className="hub__label hub__label--n">{t("hubCustomer")}</span>
+      <span className="hub__label hub__label--e">{t("hubAdmin")}</span>
+      <span className="hub__label hub__label--s">{t("hubDatabase")}</span>
+      <span className="hub__label hub__label--w">{t("hubTeam")}</span>
     </div>
   );
 }

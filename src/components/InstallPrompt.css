@@ -1,0 +1,126 @@
+/* The install banner. Bottom-docked, within thumb reach, and never taller
+   than it needs to be — it sits over the page rather than pushing it. */
+.install {
+  position: fixed;
+  /* Below the language veil (60), so the banner's own RTL/LTR reflow happens
+     out of sight along with the rest of the page. */
+  z-index: 55;
+  /* The same value on both sides, so a notch inset does not depend on
+     whether the page is running LTR or RTL. */
+  inset-inline-start: max(12px, env(safe-area-inset-left), env(safe-area-inset-right));
+  inset-inline-end: max(12px, env(safe-area-inset-left), env(safe-area-inset-right));
+  inset-block-end: calc(14px + env(safe-area-inset-bottom));
+  max-width: 460px;
+  margin-inline: auto;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+  animation: install-in 260ms ease-out both;
+}
+
+@keyframes install-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.install__disc {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--tg-blue);
+  display: grid;
+  place-items: center;
+}
+
+/* The one filled accent disc this component owns, and it holds only an icon —
+   the same rule that lets the brand mark carry the wash. */
+[data-platform="instagram"] .install__disc {
+  background: var(--ig-wash, var(--tg-blue));
+}
+
+.install__text {
+  min-width: 0;
+  flex: 1;
+}
+
+.install__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.install__body {
+  margin: 3px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.install__body svg {
+  flex: none;
+}
+
+.install__go {
+  flex: none;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.install__close {
+  flex: none;
+  align-self: flex-start;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.install__close:hover {
+  background: var(--bubble-in);
+  color: var(--ink);
+}
+
+/* Below this width the Install button beside the text leaves the text about
+   85px to live in, and a two-line sentence becomes nine. The button drops to
+   its own row instead — `order` keeps the close control up on the first row
+   with the text, where it belongs, rather than being pushed to a third. */
+@media (max-width: 400px) {
+  .install {
+    flex-wrap: wrap;
+  }
+
+  .install__close {
+    order: 1;
+  }
+
+  .install__go {
+    order: 2;
+    /* Grows to the row and shrinks if the row is narrower, so the margin that
+       lines it up under the text can never push it out of the card. */
+    flex: 0 1 100%;
+    justify-content: center;
+    margin-inline-start: 46px;
+  }
+}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Conversation from "./components/Conversation.jsx";
 import Landing from "./components/Landing.jsx";
 import SignIn from "./components/SignIn.jsx";
+import InstallPrompt from "./components/InstallPrompt.jsx";
 import { BubbleMark, CameraMark, MoonIcon } from "./components/Icons.jsx";
 import { DEFAULT_LANG, LangContext, dictFor, dirFor } from "./i18n.js";
 import { usePlatform } from "./platform.js";
@@ -89,8 +90,13 @@ export default function App() {
           <header className="page__header">
             <div className="page__header-inner">
               {/* The whole brand is the way home. Nothing is persisted, so a
-                  fresh load is a fresh conversation. */}
-              <a className="brand" href="/">
+                  fresh load is a fresh conversation.
+
+                  Each site goes to its own root rather than to "/": the
+                  Instagram page is a separate app with its own manifest
+                  scope, and sending it to the Telegram home would drop an
+                  installed copy out of standalone and into a browser tab. */}
+              <a className="brand" href={platform === "instagram" ? "/instagram" : "/"}>
                 <span className="brand__disc">
                   {/* Each site's own mark: a chat bubble for Telegram, a camera
                       frame for Instagram. */}
@@ -122,6 +128,8 @@ export default function App() {
               <Conversation />
             </Landing>
           </main>
+
+          <InstallPrompt />
 
           <div className="langnotice" role="status" aria-live="polite">
             {notice && <span className="langnotice__pill">{dict.switchedToFa}</span>}

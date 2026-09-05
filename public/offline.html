@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Offline</title>
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#131a22" />
+
+    <!-- Served by the service worker when a navigation cannot reach the
+         network and no shell has been cached yet. Self-contained on purpose:
+         at the moment it is shown, nothing else is guaranteed to load. Both
+         languages, because it cannot ask the app which one is in use. -->
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f6f8;
+        --surface: #ffffff;
+        --ink: #0f1419;
+        --ink-muted: #707a83;
+        --line: #e6eaee;
+        --accent: #2f9fdd;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e141b;
+          --surface: #1b242e;
+          --ink: #e7edf3;
+          --ink-muted: #8c99a4;
+          --line: #26313c;
+          --accent: #4aa8e0;
+        }
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px max(24px, env(safe-area-inset-left)) calc(24px + env(safe-area-inset-bottom));
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Vazirmatn", -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 30rem;
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 30px 26px;
+        text-align: center;
+      }
+      .disc {
+        width: 46px;
+        height: 46px;
+        margin: 0 auto 16px;
+        border-radius: 50%;
+        background: var(--accent);
+        display: grid;
+        place-items: center;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.2rem;
+      }
+      p {
+        margin: 0 0 6px;
+        color: var(--ink-muted);
+        line-height: 1.6;
+      }
+      p:lang(fa) {
+        direction: rtl;
+      }
+      hr {
+        border: none;
+        border-block-start: 1px solid var(--line);
+        margin: 18px 0;
+      }
+      button {
+        margin-block-start: 20px;
+        border: none;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        padding: 10px 22px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="disc" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+          <path
+            d="M6 4h20a4 4 0 0 1 4 4v12a4 4 0 0 1-4 4H15l-6 5v-5H6a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4Z"
+            fill="#fff"
+          />
+          <circle cx="10.5" cy="14" r="1.8" fill="currentColor" />
+          <circle cx="16" cy="14" r="1.8" fill="currentColor" />
+          <circle cx="21.5" cy="14" r="1.8" fill="currentColor" />
+        </svg>
+      </span>
+      <h1>You are offline</h1>
+      <p>This page needs a connection. It will load itself the moment you are back.</p>
+      <hr />
+      <p lang="fa">اتصال اینترنت برقرار نیست. به‌محض وصل‌شدن، صفحه خودش باز می‌شود.</p>
+      <button type="button" onclick="location.reload()">Try again — تلاش دوباره</button>
+    </main>
+    <script>
+      /* Reloads itself as soon as the network is back, so nobody has to
+         notice and tap. */
+      addEventListener("online", () => location.reload());
+    </script>
+  </body>
+</html>

@@ -304,6 +304,12 @@ select.field__control {
 }
 
 @media (max-width: 600px) {
+  /* Same reason as the composer: under 16px, focusing a field zooms iOS in
+     and leaves it there. */
+  .field__control {
+    font-size: 16px;
+  }
+
   .reqform__pair {
     grid-template-columns: 1fr;
   }

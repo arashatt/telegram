@@ -294,6 +294,13 @@
 }
 
 @media (max-width: 600px) {
+  /* iOS zooms the whole page in when a control smaller than 16px takes
+     focus, and does not zoom back out. One pixel buys writing a brief
+     without the layout jumping on every tap. */
+  .composer__input {
+    font-size: 16px;
+  }
+
   .bubble {
     max-width: 92%;
   }

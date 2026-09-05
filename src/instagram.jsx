@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import { PlatformContext } from "./platform.js";
 import "./index.css";
+import { registerServiceWorker } from "./pwa.js";
 
 /* The Instagram site's own entry.
 
@@ -17,3 +18,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     </PlatformContext.Provider>
   </React.StrictMode>
 );
+
+/* After the render call, so the first paint is never waiting on it. */
+registerServiceWorker();

@@ -147,3 +147,43 @@ export function ArrowSend({ size = 16 }) {
 export function SendGlyph({ size, platform }) {
   return platform === "instagram" ? <ArrowSend size={size} /> : <PlaneGlyph size={size} />;
 }
+
+/* iOS's share affordance, drawn so the install hint can point at the button
+   it means. A box with an arrow leaving it is the shape Apple uses; nothing
+   here is copied from their asset. */
+export function ShareGlyph({ size = 14 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 15V3.5" />
+      <path d="m8.4 7.1 3.6-3.6 3.6 3.6" />
+      <path d="M7.5 10.5H5.5A1.5 1.5 0 0 0 4 12v7a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 19v-7a1.5 1.5 0 0 0-1.5-1.5h-2" />
+    </svg>
+  );
+}
+
+export function CloseGlyph({ size = 14 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}

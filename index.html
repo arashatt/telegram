@@ -2,7 +2,15 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the page paint under a notch and the home
+         indicator; every inset is then paid back with env(safe-area-inset-*) in
+         index.css. interactive-widget keeps the composer above the on-screen
+         keyboard on Android instead of behind it. No maximum-scale and no
+         user-scalable=no: pinch-zoom stays available. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
 
     <title>Custom Telegram Bot Development — Get a Quote</title>
     <meta
@@ -23,6 +31,16 @@
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <!-- iOS reads none of the manifest's display fields. These are what make a
+         copy added to the home screen open without Safari's chrome and carry
+         its own name under the icon. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Bot Intake" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#131a22" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

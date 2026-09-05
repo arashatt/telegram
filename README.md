@@ -302,6 +302,7 @@ shared/formSchema.js   fields, option values + labels, validation (client & Work
 src/i18n.js            UI strings, language context
 src/lang.js            Persian-script detection
 src/App.jsx            page shell, language switch
+src/pwa.js             install prompt capture, service worker registration
 src/components/
   Conversation.jsx     stream, SSE reading, orchestration
   RequirementsForm.jsx the inline form
@@ -313,6 +314,14 @@ src/components/
   Icons.jsx            inline SVG glyphs
   CodeFilm.jsx         looping film of the Worker build (landing)
   BookingDemo.jsx      tappable booking-bot phone mock-up (landing)
+  CommentToDmDemo.jsx  tappable comment-to-DM phone mock-up (Instagram landing)
+  InstallPrompt.jsx    the add-to-home-screen banner
+public/
+  manifest*.webmanifest  one installable app per site
+  sw.js                  service worker: offline shell, asset cache
+  offline.html           shown when a navigation cannot reach the network
+  icons/                 app icons: any, maskable, apple-touch
+  screenshots/           what Chrome shows in its install dialog
 worker/
   index.js             routes
   intake.js            prompts, JSON extraction, sanitising
@@ -436,6 +445,68 @@ point them at different models.
 
 Either provider costs money per turn, which is what the per-IP rate limits in
 [Abuse and DDoS](#abuse-and-ddos) are protecting.
+
+## Installable on Android and iOS
+
+Both pages are installable web apps. On Android, Chrome decides the site is
+installable and fires `beforeinstallprompt`; `src/pwa.js` captures it at module
+scope — it fires once, and can fire before React has mounted — and
+`InstallPrompt.jsx` offers it as a banner. On iOS there is no programmatic
+install at all, so the same banner points at Safari's Share → Add to Home
+Screen, and appears for nothing else: every iOS browser is WebKit underneath,
+but only Safari's own shell has that menu item.
+
+Each site is a separate app — its own manifest, id, scope, icons and
+home-screen name — so installing one neither installs nor replaces the other,
+and the installed Instagram app never navigates to the Telegram home page.
+
+| | `/` | `/instagram` |
+| --- | --- | --- |
+| manifest | `public/manifest.webmanifest` | `public/manifest-instagram.webmanifest` |
+| id and scope | `/` | `/instagram` |
+| home-screen name | Bot Intake | DM Intake |
+| icons | `public/icons/icon-*.png` | `public/icons/instagram-*.png` |
+
+Icons come in three shapes because the two platforms mask them differently: a
+rounded square with transparent corners for menus and task switchers, a
+full-bleed *maskable* one whose glyph stays inside the central 80% so an
+Android launcher can crop it to any shape, and an opaque `apple-touch-icon`,
+because iOS fills transparency with black. All are generated from the same chat
+mark as the favicons.
+
+The banner is the one thing this site stores: a timestamp under
+`install-dismissed-at`, so a dismissal lasts a month instead of returning on
+every visit. It is per-browser, holds nothing about the visitor, and never
+leaves the device — the brief and the conversation are still not persisted
+anywhere.
+
+### The service worker
+
+`public/sw.js` never touches `/api/*`. Those are live, rate-limited and carry a
+session cookie, and a cached answer to any of them would be wrong. Everything
+else:
+
+- **navigations** are network-first, so a deploy is visible on the next load;
+  the cached shell is the fallback, and `public/offline.html` is behind that.
+- **`/assets/*`** are cache-first — Vite content-hashes them, so a given URL's
+  bytes never change and revalidating is wasted time.
+- **cross-origin** requests (the web fonts) are left to the browser's own
+  cache rather than stored as opaque responses.
+
+It is registered from `src/pwa.js` and only in a built site: a worker running
+over `vite dev` serves yesterday's modules against today's HMR. Bump `VERSION`
+in `public/sw.js` to retire every cache from the previous release.
+
+### On a phone
+
+`viewport-fit=cover` lets the page paint under a cutout, and every inset is
+paid back with `env(safe-area-inset-*)`, which resolves to 0 on a desktop and
+on a phone without one — so none of it is behind a media query. Form controls
+are 16px on small screens, below which iOS zooms the page in on focus and does
+not zoom back out. Taps do not flash grey and do not wait for a second tap. The
+header drops its tagline under 480px, where it was taking three lines and
+making the sticky header a third of the screen, but keeps it for screen
+readers so the brand link still has an accessible name.
 
 ## SEO
 

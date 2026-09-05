@@ -33,6 +33,16 @@ export const translations = {
     online: "online",
     typingStatus: "typing…",
 
+    /* The install banner. Android and iOS get different words because they
+       offer different things: Chrome can install the site on request, Safari
+       can only be pointed at its own Share menu. */
+    installTitle: "Install this as an app",
+    installBody: "Opens full screen, and keeps working when the signal drops.",
+    installAction: "Install",
+    installDismiss: "Not now",
+    installIosTitle: "Add this to your home screen",
+    installIosBody: "Tap Share, then “Add to Home Screen”.",
+
     heroKicker: "Intake takes about two minutes",
     heroTitle: "Custom Telegram bot development",
     heroBody:
@@ -198,6 +208,13 @@ export const translations = {
     themeToggle: "تغییر پوسته",
     online: "آنلاین",
     typingStatus: "در حال نوشتن…",
+
+    installTitle: "نصب به‌صورت اپلیکیشن",
+    installBody: "تمام‌صفحه باز می‌شود و بدون اینترنت هم بالا می‌آید.",
+    installAction: "نصب",
+    installDismiss: "الان نه",
+    installIosTitle: "افزودن به صفحهٔ اصلی",
+    installIosBody: "روی دکمهٔ هم‌رسانی بزنید و «Add to Home Screen» را انتخاب کنید.",
 
     heroKicker: "ثبت سفارش حدود دو دقیقه طول می‌کشد",
     heroTitle: "ساخت ربات اختصاصی تلگرام",

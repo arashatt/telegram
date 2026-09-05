@@ -348,6 +348,53 @@
   box-shadow: var(--shadow);
 }
 
+/* Physical left/top: the diagram is symmetrical, so RTL moves nothing but the
+   words inside these pills. */
+.hub__label--n {
+  left: 50%;
+  top: 11%;
+}
+
+.hub__label--e {
+  left: 88%;
+  top: 50%;
+}
+
+.hub__label--s {
+  left: 50%;
+  top: 89%;
+}
+
+.hub__label--w {
+  left: 12%;
+  top: 50%;
+}
+
+/* Each label is centred on its anchor, so an anchor nearer the edge than half
+   the label's width pushes the whole document sideways — which is what the
+   east and west pair did on a phone, where the diagram shrinks with the
+   viewport and the words do not. The anchors move in to 22%/78% and the text
+   is allowed a second line, with max-width holding each pill inside its own
+   half: 42% wide centred on 22% reaches 1% from the edge, in either language
+   and on either site. */
+@media (max-width: 720px) {
+  .hub__label {
+    max-width: 42%;
+    padding: 6px 12px;
+    font-size: 12px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .hub__label--e {
+    left: 78%;
+  }
+
+  .hub__label--w {
+    left: 22%;
+  }
+}
+
 /* ---- intake band ---- */
 
 .brief {
@@ -384,7 +431,9 @@
 .sitefoot__inner {
   max-width: var(--shell);
   margin: 0 auto;
-  padding: 26px var(--gutter);
+  /* The last thing on the page, so it is what the home indicator would
+     otherwise sit on top of in an installed copy. */
+  padding: 26px var(--gutter) calc(26px + env(safe-area-inset-bottom));
   display: flex;
   justify-content: space-between;
   align-items: center;
