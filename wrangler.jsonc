@@ -17,27 +17,19 @@
   "ai": {
     "binding": "AI"
   },
-  // The shop owner's dashboard needs a database. Commented out rather than
-  // shipped with a placeholder id because a deploy is *rejected* for an id
-  // Cloudflare does not know — main must stay deployable.
+  // The shop owner's dashboard's database. The id is a resource identifier,
+  // not a credential — reaching this database still needs Cloudflare account
+  // auth — which is why it belongs in config rather than in the secrets panel.
   //
-  // To turn it on, once. No terminal is needed for any of it:
-  //   1. Cloudflare dashboard > Storage & Databases > D1 > Create database,
-  //      named telegram-dashboard. Copy the Database ID it shows.
-  //   2. Paste it below and uncomment this block.
-  //   3. Deploy. The Worker creates its own tables on the first request —
-  //      see worker/schema.js — so there is no migration step.
-  //
-  // Until then /api/app/* answers 503 "database_not_configured" and nothing
-  // else changes: the two intake pages never touch it.
-  //
-  // "d1_databases": [
-  //   {
-  //     "binding": "DB",
-  //     "database_name": "telegram-dashboard",
-  //     "database_id": "PASTE_THE_DATABASE_ID_HERE"
-  //   }
-  // ],
+  // There is no migration step: the Worker creates its own tables on the
+  // first request that needs one. See worker/schema.js.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "telegram-dashboard",
+      "database_id": "a3768ed5-e028-440a-b590-33b50e430b16"
+    }
+  ],
   // No "vars" block on purpose. Values declared here overwrite dashboard-set
   // variables on every deploy, so runtime configuration lives entirely in
   // Cloudflare's "Variables and Secrets" panel instead:

@@ -38,7 +38,7 @@ import {
 /* Bumped whenever something ships that is hard to confirm from the outside.
    /api/health echoes it, so "is the deploy actually live?" is one request
    rather than an inference from symptoms. */
-const BUILD = "2026-09-05-installable-apps+shop-dashboard";
+const BUILD = "2026-09-08-dashboard-db-live";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
