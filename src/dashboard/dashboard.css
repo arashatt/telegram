@@ -1,0 +1,899 @@
+/* The dashboard.
+
+   Same tokens as the rest of the site — no value here is a literal — and the
+   same shapes: 999px pills, 14px cards, 10px inputs, tinted fills through
+   color-mix rather than a second opaque accent.
+
+   Laid out phone-first, because that is where a shop owner reads their DMs.
+   The tab bar is docked to the bottom edge within thumb reach, and becomes a
+   row under the toolbar once the pointer is not a thumb. */
+
+.dash {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-alt);
+  color: var(--ink);
+}
+
+/* ---- top bar ---- */
+
+.dash__bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-block-end: 1px solid var(--line);
+}
+
+.dash__barinner {
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: calc(9px + env(safe-area-inset-top)) var(--gutter) 9px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dash__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.dash__mark {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--tg-blue);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.dash__shopname {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash__shoppick {
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--r-input);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 10px;
+}
+
+.dash__tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash__icon {
+  min-width: 36px;
+  height: 36px;
+  padding-inline: 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.dash__icon:hover {
+  color: var(--tg-blue);
+  border-color: var(--tg-blue);
+}
+
+/* ---- tabs ----
+   Docked to the bottom edge on a phone; a row under the header once the window
+   is wide enough that the thumb is not the pointing device.
+
+   A sibling of the bar rather than a child of it: a backdrop-filter anywhere
+   up the tree becomes the containing block for position: fixed, and the bar
+   has one. */
+
+.dash__tabs {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  backdrop-filter: blur(10px);
+  border-block-start: 1px solid var(--line);
+  padding-block-end: env(safe-area-inset-bottom);
+}
+
+.dash__tab {
+  min-height: 52px;
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.dash__tab[aria-current="page"] {
+  color: var(--tg-blue);
+}
+
+/* ---- body ---- */
+
+.dash__main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 18px var(--gutter) 96px;
+}
+
+.dash__foot {
+  max-width: var(--shell);
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 var(--gutter) 90px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.dash__link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--tg-blue);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dash__card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 20px;
+  margin-block-end: 14px;
+  animation: tgn-in 0.22s ease-out both;
+}
+
+.dash__card h2 {
+  margin: 0 0 6px;
+  font-size: 19px;
+}
+
+.dash__card h3 {
+  margin: 18px 0 6px;
+  font-size: 14px;
+}
+
+.dash__card p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+.dash__card--gate,
+.dash__card--empty {
+  text-align: center;
+  padding: 34px 22px;
+}
+
+.dash__note {
+  font-size: 13px;
+  color: var(--ink-muted);
+  padding: 10px 2px;
+}
+
+.dash__error {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--danger);
+}
+
+.dash__idrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.dash__idrow code,
+.set__tokens code,
+.cat__meta code {
+  background: var(--bubble-in);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 12px;
+}
+
+/* ---- form furniture ---- */
+
+.dash__form,
+.set__add {
+  display: grid;
+  gap: 14px;
+  margin-block-start: 14px;
+}
+
+.dash__field {
+  display: grid;
+  gap: 5px;
+}
+
+.dash__field > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.dash__field input,
+.dash__field select {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-input);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.dash__field input:disabled,
+.dash__field select:disabled {
+  background: var(--bubble-in);
+  color: var(--ink-muted);
+}
+
+.dash__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.dash__check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+}
+
+.dash__check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--tg-blue);
+}
+
+/* ---- chips ---- */
+
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.chip b {
+  font-weight: 700;
+  opacity: 0.7;
+  margin-inline-start: 4px;
+}
+
+.chip[aria-selected="true"] {
+  background: color-mix(in srgb, var(--tg-blue) 14%, transparent);
+  border-color: color-mix(in srgb, var(--tg-blue) 22%, transparent);
+  color: var(--tg-blue-ink);
+}
+
+.chip--action:hover {
+  border-color: var(--tg-blue);
+  color: var(--tg-blue);
+}
+
+/* ---- orders ---- */
+
+.ord__filters,
+.rep__ranges {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-block-end: 12px;
+  scrollbar-width: none;
+}
+
+.ord__filters::-webkit-scrollbar,
+.rep__ranges::-webkit-scrollbar {
+  display: none;
+}
+
+.ord__list,
+.cat__list,
+.set__members,
+.set__tokens,
+.rep__statuses,
+.sheet__items,
+.sheet__events,
+.rep__bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ord__list {
+  display: grid;
+  gap: 8px;
+}
+
+.ord__row {
+  width: 100%;
+  min-height: 60px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: center;
+  text-align: start;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.ord__row:hover {
+  border-color: var(--tg-blue);
+}
+
+.ord__who {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Aligned under the handle, not to the middle of the row: it sits in the wide
+   first column, and ending it there left the figure floating. */
+.ord__amount {
+  font-size: 15px;
+  font-weight: 700;
+  text-align: start;
+}
+
+.ord__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.ord__status {
+  justify-self: end;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
+  color: var(--ink-muted);
+}
+
+.ord__status[data-status="new"] {
+  background: color-mix(in srgb, var(--tg-blue) 16%, transparent);
+  color: var(--tg-blue-ink);
+}
+
+/* The three states where money actually arrived share a colour, and the name
+   is always in the pill — status is never carried by colour alone. */
+.ord__status[data-status="confirmed"],
+.ord__status[data-status="shipped"],
+.ord__status[data-status="done"] {
+  background: color-mix(in srgb, var(--positive) 18%, transparent);
+  color: var(--positive-ink);
+}
+
+.ord__status[data-status="cancelled"] {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  color: var(--danger);
+}
+
+.ord__more {
+  margin-block-start: 12px;
+  width: 100%;
+  justify-content: center;
+}
+
+/* ---- sheet ---- */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet__scrim {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+  cursor: pointer;
+}
+
+.sheet__panel {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 88dvh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-start-start-radius: var(--r-card);
+  border-start-end-radius: var(--r-card);
+  padding: 20px var(--gutter) calc(24px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-sheet);
+  animation: tgn-in 0.22s ease-out both;
+}
+
+.sheet__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 14px;
+}
+
+.sheet__head h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.sheet__ref {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.sheet__formtitle {
+  margin: 0 0 16px;
+  font-size: 17px;
+}
+
+.sheet__title {
+  margin: 20px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.sheet__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.sheet__facts dt {
+  color: var(--ink-muted);
+}
+
+.sheet__facts dd {
+  margin: 0;
+}
+
+.sheet__items li,
+.sheet__events li,
+.set__members li,
+.set__tokens li,
+.rep__statuses li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-block-end: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.sheet__items li > :first-child,
+.set__members li > :first-child,
+.set__tokens li > :nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheet__qty {
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.sheet__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 14px 0 0;
+  padding-block-start: 12px;
+  font-size: 15px;
+}
+
+.sheet__total b {
+  font-size: 19px;
+}
+
+.sheet__moves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sheet__events li {
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.sheet__events li[data-type="order"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.sheet__actions {
+  display: flex;
+  gap: 10px;
+  margin-block-start: 20px;
+}
+
+.sheet__close {
+  margin-block-start: 20px;
+  width: 100%;
+  justify-content: center;
+}
+
+/* ---- catalog ---- */
+
+.cat__head {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-end: 12px;
+}
+
+.cat__list {
+  display: grid;
+  gap: 8px;
+}
+
+.cat__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.cat__row[data-inactive="true"] {
+  opacity: 0.62;
+}
+
+.cat__open {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  text-align: start;
+  border: none;
+  background: none;
+  padding: 6px 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  cursor: pointer;
+}
+
+.cat__title {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cat__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.cat__hidden {
+  border-radius: 999px;
+  padding: 1px 8px;
+  background: var(--bubble-in);
+}
+
+.cat__price {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.cat__remove {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cat__remove:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+/* ---- report ----
+   Four figures, then two single-series rankings. No legend: one series, and
+   the heading names it. Every bar carries its own value, so the bar is the
+   comparison and the text is the number. */
+
+.rep__tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-block-end: 18px;
+}
+
+.rep__tile {
+  display: grid;
+  gap: 3px;
+  align-content: start;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+}
+
+.rep__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.rep__value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.rep__sub {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.rep__block {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 18px;
+  margin-block-end: 14px;
+}
+
+.rep__blocktitle {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.rep__bars {
+  display: grid;
+  gap: 12px;
+}
+
+.rep__bars li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  align-items: center;
+}
+
+.rep__barlabel {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rep__barvalue {
+  font-size: 14px;
+  font-weight: 700;
+  text-align: end;
+}
+
+/* The track is recessive; the fill is the site's accent used as magnitude.
+   Both ends are fully rounded at this height, which is the 4px data-end the
+   marks spec asks for. */
+.rep__track {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
+  overflow: hidden;
+}
+
+.rep__fill {
+  display: block;
+  height: 100%;
+  min-inline-size: 4px;
+  border-radius: 999px;
+  background: var(--tg-blue);
+}
+
+.rep__barnote {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.rep__statuses li:last-child,
+.set__members li:last-child,
+.set__tokens li:last-child,
+.sheet__items li:last-child {
+  border-block-end: none;
+}
+
+.rep__statuses li {
+  justify-content: space-between;
+}
+
+/* ---- settings ---- */
+
+.set__role,
+.set__used {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.set__endpoint {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-input);
+  background: var(--bubble-in);
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.set__fresh {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--r-input);
+  background: color-mix(in srgb, var(--tg-blue) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tg-blue) 22%, transparent);
+  margin-block-end: 14px;
+}
+
+.set__fresh code {
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.set__once {
+  margin: 0;
+  font-size: 12px;
+  color: var(--tg-blue-ink);
+}
+
+/* ---- wider than a phone ---- */
+
+@media (min-width: 760px) {
+  .dash__tabs {
+    position: static;
+    max-width: var(--shell);
+    margin: 0 auto;
+    grid-template-columns: repeat(4, max-content);
+    gap: 4px;
+    /* On the page ground under the toolbar, so there is no second hairline
+       directly below the bar's own. */
+    padding: 14px var(--gutter) 0;
+    background: none;
+    backdrop-filter: none;
+    border-block-start: none;
+  }
+
+  .dash__tab {
+    flex-direction: row;
+    gap: 7px;
+    min-height: 40px;
+    padding-inline: 12px;
+    border-radius: 999px;
+    font-size: 13px;
+  }
+
+  .dash__tab[aria-current="page"] {
+    background: color-mix(in srgb, var(--tg-blue) 12%, transparent);
+  }
+
+  .dash__main {
+    padding-block-end: 28px;
+  }
+
+  .dash__foot {
+    padding-block-end: 24px;
+  }
+
+  .rep__tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .sheet {
+    align-items: center;
+  }
+
+  .sheet__panel {
+    border-radius: var(--r-card);
+    max-height: 84dvh;
+  }
+}
+
+@media (max-width: 420px) {
+  .dash__pair {
+    grid-template-columns: 1fr;
+  }
+}

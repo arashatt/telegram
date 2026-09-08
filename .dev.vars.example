@@ -53,6 +53,17 @@ TELEGRAM_CLIENT_SECRET=your-oidc-client-secret
 # Point the SDK at a gateway rather than the API. Unset in normal use.
 # ANTHROPIC_BASE_URL=https://gateway.example.com/anthropic
 
+# --- The shop owner's dashboard at /app ------------------------------------
+# Telegram ids allowed to create a shop, comma-separated. These are the
+# studio's own accounts; it grants creating a shop and nothing else — an admin
+# who is not a member of a shop still cannot read that shop's orders.
+# Leave it unset and no shop can be created, which is the right state until
+# the D1 database exists.
+# ADMIN_TELEGRAM_IDS=8928298590,123456789
+#
+# The database itself is not a variable: it is a binding, and it lives in
+# wrangler.jsonc — see the commented d1_databases block there, and the README.
+
 # Nothing extra is needed for the Instagram site at /instagram: it shares this
 # Worker, these secrets and this delivery chat. Each brief's heading says which
 # site it came from.

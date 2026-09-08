@@ -6,8 +6,10 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), cloudflare()],
-  /* Two pages, two HTML entries. The Instagram site needs its own <title>,
-     description and robots rule, which a shared index.html cannot give it.
+  /* Three pages, three HTML entries. The Instagram site needs its own <title>,
+     description and robots rule, which a shared index.html cannot give it, and
+     the dashboard at /app is a different application that happens to share the
+     tokens and the sign-in.
 
      Scoped to the client environment on purpose: the Cloudflare plugin builds
      the Worker as a second environment, and a top-level `build.rollupOptions`
@@ -19,6 +21,7 @@ export default defineConfig({
           input: {
             main: 'index.html',
             instagram: 'instagram.html',
+            app: 'app.html',
           },
         },
       },

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <title>Shop dashboard</title>
+  <desc>Three bars on the site's accent. Deliberately not the chat mark: the
+  dashboard installs as its own app, and a shop owner with all three on a home
+  screen has to be able to tell them apart at icon size.</desc>
+  <rect width="32" height="32" rx="7" fill="#2f9fdd"/>
+  <g fill="#ffffff">
+    <rect x="7" y="16" width="4.6" height="9" rx="2.3"/>
+    <rect x="13.7" y="8.5" width="4.6" height="16.5" rx="2.3"/>
+    <rect x="20.4" y="12.5" width="4.6" height="12.5" rx="2.3"/>
+  </g>
+</svg>

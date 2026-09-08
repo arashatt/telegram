@@ -15,6 +15,9 @@ import {
   redirectUri,
 } from "./auth.js";
 import { claudeModel, extract as claudeExtract, hasClaude, streamChat } from "./claude.js";
+import { handleApp, isAppRoute } from "./app.js";
+import { hasDb } from "./db.js";
+import { CORS, json, readBody } from "./http.js";
 import { clientKey, overLimit } from "./ratelimit.js";
 import { canMessageVisitor, deliverBrief, isTelegramConfigured, notifyVisitor } from "./telegram.js";
 import {
@@ -35,7 +38,7 @@ import {
 /* Bumped whenever something ships that is hard to confirm from the outside.
    /api/health echoes it, so "is the deploy actually live?" is one request
    rather than an inference from symptoms. */
-const BUILD = "2026-09-02-booking-demo+claude-intake";
+const BUILD = "2026-09-05-installable-apps+shop-dashboard";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
@@ -45,38 +48,12 @@ const extractModel = (env) => env.EXTRACT_MODEL || env.CHAT_MODEL || DEFAULT_MOD
    AI binding otherwise — and the binding stays the fallback either way, so a
    revoked key degrades the replies rather than the site. */
 const servingModel = (env) => (hasClaude(env) ? claudeModel(env) : chatModel(env));
-const MAX_BODY_BYTES = 64 * 1024;
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
 
 function tooManyRequests() {
   return new Response(JSON.stringify({ error: "rate_limited" }), {
     status: 429,
     headers: { "content-type": "application/json", "retry-after": "60", ...CORS },
   });
-}
-
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", ...CORS },
-  });
-}
-
-async function readBody(request) {
-  const declared = Number(request.headers.get("content-length") ?? 0);
-  if (declared > MAX_BODY_BYTES) return { tooLarge: true };
-  const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) return { tooLarge: true };
-  try {
-    return { body: JSON.parse(text) };
-  } catch {
-    return { invalid: true };
-  }
 }
 
 async function handleChatStream(request, env) {
@@ -274,6 +251,10 @@ function handleHealth(request, env) {
     webhookMirror: Boolean(env.REQUIREMENTS_WEBHOOK_URL),
     visitorDm: canMessageVisitor(env),
     rateLimiters: Boolean(env.CHAT_LIMIT && env.SUBMIT_LIMIT && env.AUTH_LIMIT),
+    /* The dashboard's database. Absent is a valid deploy — the two intake
+       pages never touch it — so it is reported but not required. */
+    dashboardDb: hasDb(env),
+    dashboardAdmins: Boolean(env.ADMIN_TELEGRAM_IDS),
   };
 
   // Only the things the site cannot do its job without.
@@ -338,6 +319,12 @@ const GET_ROUTES = {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    /* The dashboard's own API. Kept in its own module and matched by prefix
+       because it is the only part of this Worker with path parameters, its own
+       tenancy rules and a database behind it. */
+    if (isAppRoute(url.pathname)) return handleApp(request, env, url);
+
     const getHandler = GET_ROUTES[url.pathname];
     const postHandler = POST_ROUTES[url.pathname];
 

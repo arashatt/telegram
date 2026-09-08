@@ -316,6 +316,19 @@ src/components/
   BookingDemo.jsx      tappable booking-bot phone mock-up (landing)
   CommentToDmDemo.jsx  tappable comment-to-DM phone mock-up (Instagram landing)
   InstallPrompt.jsx    the add-to-home-screen banner
+src/dashboard/         the shop owner's dashboard at /app
+  Dashboard.jsx        shell: sign-in gate, shop picker, tab bar
+  Orders.jsx           the list, the detail sheet, status changes
+  Catalog.jsx          what the shop sells
+  Report.jsx           revenue, what sold, which post sold it, reply times
+  Settings.jsx         shop, members, automation tokens, sample data
+  copy.js              its own dictionary — it shares no words with the pitch
+shared/orderSchema.js  statuses, money, limits, validation (client & Worker)
+migrations/            D1 schema
+worker/
+  db.js                every query, each one scoped to a shop
+  app.js               /api/app/* — tenancy, orders, catalog, report, ingest
+  http.js              shared body cap and JSON helpers
 public/
   manifest*.webmanifest  one installable app per site
   sw.js                  service worker: offline shell, asset cache
@@ -508,6 +521,131 @@ header drops its tagline under 480px, where it was taking three lines and
 making the sticky header a third of the screen, but keeps it for screen
 readers so the brand link still has an accessible name.
 
+## The shop owner's dashboard
+
+`/app` is the dashboard the Instagram page promises: *"every DM and order is
+written to your store, your team reads it in a dashboard, and a weekly report
+says what actually sold."* Orders, a catalog, a weekly report and the settings
+that let an automation write into it.
+
+It is a separate application that happens to live in the same Worker. It shares
+the design tokens and the Telegram sign-in with the two intake pages and
+nothing else — its own entry point, its own dictionary, its own manifest. It
+keeps the base blue accent on purpose: this is the product, not the pitch for
+it, and a shop selling through Telegram would open the same screens.
+
+### Turning it on
+
+The dashboard needs a database, and `wrangler.jsonc` ships with the binding
+**commented out** — a deploy is rejected outright for a `database_id`
+Cloudflare does not recognise, so a placeholder would break every deploy until
+someone noticed. Until the binding exists, `/api/app/*` answers
+`503 database_not_configured`, the dashboard says so in plain words, and
+nothing else on the site changes.
+
+```sh
+npx wrangler d1 create telegram-dashboard
+# paste the printed database_id into wrangler.jsonc and uncomment the block
+npx wrangler d1 migrations apply telegram-dashboard --remote
+npx wrangler deploy
+```
+
+Then set `ADMIN_TELEGRAM_IDS` (Variables and Secrets, comma-separated) to the
+studio's own Telegram ids. `/api/health` reports `dashboardDb` and
+`dashboardAdmins` so both are one request away from being obvious.
+
+### Who can see what
+
+There is no second account system: identity is the Telegram sign-in the intake
+pages already use, and `shop_members` maps a Telegram id to a shop.
+
+- **Studio admins** (`ADMIN_TELEGRAM_IDS`) may create a shop, and whoever
+  creates one owns it. That is *all* the flag grants — an admin who is not a
+  member of a shop cannot read that shop's orders. Support access to a client's
+  data should be a deliberate membership, not a side effect of being staff.
+- **Owners** change the shop, add and remove members, mint automation tokens
+  and load sample data.
+- **Staff** read everything and move orders along.
+- A shop cannot be left without an owner; removing the last one is refused.
+
+The shop id travels in `?shop=`, and the Worker resolves it against the
+caller's own memberships — so it selects among the shops they already have and
+can never introduce one they do not. Every function in `worker/db.js` takes a
+shop id for the same reason: there is no query in the file that can return a
+row without being told which shop is asking.
+
+### How the automation writes in
+
+One endpoint, authenticated by a per-shop bearer token. Only the token's
+SHA-256 is stored, so a leaked database row is not a credential and the token
+is shown exactly once — at the moment it is created, in Settings.
+
+```sh
+curl -X POST https://example.com/api/app/ingest \
+  -H "Authorization: Bearer sk_…" \
+  -H "content-type: application/json" \
+  -d '{
+    "orders": [{
+      "ref": "IG-5001",
+      "customer": "@nadia.k",
+      "status": "confirmed",
+      "post": "New season, six colours",
+      "keyword": "CATALOG",
+      "items": [{ "sku": "TEE-GRN", "qty": 2 }]
+    }],
+    "events": [
+      { "type": "dm_in",  "customer": "@nadia.k", "at": 1788870000000 },
+      { "type": "dm_out", "customer": "@nadia.k", "at": 1788870180000 }
+    ]
+  }'
+```
+
+- **`ref` makes it idempotent.** It is the shop's own identifier for the order
+  and is unique per shop, so a retried delivery updates the order it already
+  created rather than making a second one.
+- **A line that names only a SKU is priced from the catalog**, and linked to
+  that product so the report can name it. A declared `total` still wins, since
+  the automation may know about shipping or a discount that is not a line.
+- **`dm_in` and `dm_out` are what make a reply time measurable.** Without both,
+  "reply times" is a claim with nothing behind it. Event types are `comment`,
+  `dm_in`, `dm_out`, `order` and `handoff`; anything else is dropped rather
+  than stored.
+- Batches are capped at 50 orders and 200 events, and the response says
+  `truncated: true` rather than silently dropping the tail.
+- The token can write and can read nothing. There is no GET on this endpoint.
+
+### The report
+
+Three of its numbers are the ones the Instagram page names.
+
+- **Revenue** counts only orders that reached `confirmed`, `shipped` or `done`.
+  A cancelled order is not revenue and a brand new one is not yet — the report
+  says so rather than flattering the number.
+- **Which post sold it** groups orders by the post that produced them, which is
+  the claim `demoPoint3` makes: which post *sold*, not which post was liked.
+- **Reply time is a median**, not a mean: one holiday weekend where nobody
+  answered would otherwise swallow a week of two-minute replies. A message only
+  starts a wait if the previous thing in that thread was not also an inbound
+  message, so three messages in a row from one person are one wait, not three.
+
+Money is integer minor units with a currency beside it, everywhere. Floats do
+not add up, and a total that is a cent out is a support ticket. Order lines keep
+their own copy of the title and unit price, so editing a product tomorrow never
+rewrites what an order was sold for yesterday.
+
+### Sample data
+
+The automation that will fill a real shop does not exist yet, and a dashboard
+with nothing in it cannot be judged. **Settings → Load sample data** fills an
+empty shop with a fortnight of plausible orders and the conversations behind
+them, deterministically. It is refused the moment the shop has real orders.
+
+### Not in scope here
+
+The Instagram side itself. Talking to Meta's Graph API needs a Meta app, app
+review and page tokens, and none of that is in this repository. What is here is
+the seam it writes through, and the dashboard on the other side of it.
+
 ## SEO
 
 Critical CSS is inlined in `<head>` and the webfont stylesheet is loaded
@@ -550,6 +688,18 @@ the home page.
 | `GET /api/auth/telegram/callback` | `?code&state` | popup-closing page, sets session |
 | `GET /api/auth/telegram/me` | — | `{ user, configured }` |
 | `POST /api/auth/telegram/logout` | — | `{ ok }` |
+| `GET /api/app/session` | — | `{ user, shops, admin, database }` |
+| `GET /api/app/overview` | `?shop` | shop, counts, recent orders, report |
+| `GET /api/app/orders` | `?shop&status&before&limit` | `{ orders, cursor, counts }` |
+| `GET /api/app/orders/:id` | `?shop` | order with its lines and its events |
+| `POST /api/app/orders/:id/status` | `{ status }` | `{ ok, order }` |
+| `GET/POST /api/app/products[/:id]` | `?shop` | the catalog |
+| `GET /api/app/report` | `?shop&days` | revenue, top products, top posts, replies |
+| `GET/POST /api/app/settings` | `?shop` | shop, members, tokens |
+| `POST /api/app/tokens[/revoke]` | `?shop` | a token, once |
+| `POST /api/app/members[/remove]` | `?shop` | membership |
+| `POST /api/app/demo` | `?shop` | sample data into an empty shop |
+| `POST /api/app/ingest` | `Bearer` + `{ orders, events }` | what was written |
 
 Untrusted input is treated as such: bodies are capped at 64 KB, every field
 is coerced onto the schema before use (so neither a crafted request nor a

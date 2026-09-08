@@ -23,7 +23,7 @@
    falls back to the system UI font.
 
    Bump VERSION to retire every cache from the previous release. */
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const KEEP = [SHELL, RUNTIME];
@@ -36,20 +36,29 @@ const OFFLINE = "/offline.html";
 const SHELL_URLS = [
   "/",
   "/instagram",
+  "/app",
   OFFLINE,
   "/manifest.webmanifest",
   "/manifest-instagram.webmanifest",
+  "/manifest-app.webmanifest",
   "/favicon.svg",
   "/favicon-instagram.svg",
+  "/favicon-app.svg",
   "/icons/icon-192.png",
   "/icons/instagram-192.png",
+  "/icons/app-192.png",
 ];
 
-/* Which shell answers a navigation. Both sites are single pages, and the
-   asset router already serves index.html for anything it does not
-   recognise, so every path resolves to one of the two. */
+/* Which shell answers a navigation. All three pages are single pages, and the
+   asset router already serves index.html for anything it does not recognise,
+   so every path resolves to one of them.
+
+   The dashboard's shell is the same HTML for everyone — it holds no data, and
+   everything it shows comes from /api/app/*, which is never cached. */
 function shellFor(pathname) {
-  return pathname === "/instagram" || pathname.startsWith("/instagram/") ? "/instagram" : "/";
+  if (pathname === "/instagram" || pathname.startsWith("/instagram/")) return "/instagram";
+  if (pathname === "/app" || pathname.startsWith("/app/")) return "/app";
+  return "/";
 }
 
 self.addEventListener("install", (event) => {

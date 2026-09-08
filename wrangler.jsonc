@@ -17,6 +17,28 @@
   "ai": {
     "binding": "AI"
   },
+  // The shop owner's dashboard needs a database. It is commented out rather
+  // than shipped with a placeholder id because a deploy would be *rejected*
+  // for an id Cloudflare does not know — main must stay deployable.
+  //
+  // To turn the dashboard on, once:
+  //
+  //   npx wrangler d1 create telegram-dashboard
+  //   # paste the printed database_id below, then uncomment this block
+  //   npx wrangler d1 migrations apply telegram-dashboard --remote
+  //   npx wrangler deploy
+  //
+  // Until then /api/app/* answers 503 "database_not_configured" and nothing
+  // else changes: the two intake pages never touch it.
+  //
+  // "d1_databases": [
+  //   {
+  //     "binding": "DB",
+  //     "database_name": "telegram-dashboard",
+  //     "database_id": "PASTE_THE_ID_FROM_d1_create",
+  //     "migrations_dir": "migrations"
+  //   }
+  // ],
   // No "vars" block on purpose. Values declared here overwrite dashboard-set
   // variables on every deploy, so runtime configuration lives entirely in
   // Cloudflare's "Variables and Secrets" panel instead:
@@ -43,6 +65,13 @@
       "name": "AUTH_LIMIT",
       "namespace_id": "1003",
       "simple": { "limit": 8, "period": 60 }
+    },
+    // The dashboard: reads are cheap but a signed-in person clicking around
+    // makes a lot of them, and the automation's ingest batches share this cap.
+    {
+      "name": "APP_LIMIT",
+      "namespace_id": "1004",
+      "simple": { "limit": 60, "period": 60 }
     }
   ]
 }

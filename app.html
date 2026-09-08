@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Same reasoning as the two intake pages: paint under the cutout and pay
+         every inset back with env(safe-area-inset-*), keep the keyboard from
+         covering a field, and never disable pinch-zoom. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+
+    <title>Shop dashboard</title>
+    <meta
+      name="description"
+      content="Orders, catalog and a weekly report for a shop selling through Instagram DMs."
+    />
+
+    <!-- Nobody signed out can see anything here, and there is nothing to rank.
+         Crawling stays allowed so a crawler can actually read this rule. -->
+    <meta name="robots" content="noindex, nofollow" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon-app.svg" />
+    <link rel="manifest" href="/manifest-app.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-app.png" />
+
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Shop" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#131a22" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+
+    <!-- Enough of a first paint that the app does not arrive on a bare white
+         document. There is deliberately no crawlable fallback copy: unlike the
+         two intake pages, this one has nothing to say to somebody who is not
+         signed in. -->
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        background: #f4f6f8;
+        color: #0f1419;
+        font-family: "Vazirmatn", "Segoe UI", system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #0e141b;
+          color: #e7edf3;
+        }
+      }
+      #boot {
+        padding: 64px 24px;
+        text-align: center;
+        font-size: 14px;
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <p id="boot">Loading…</p>
+    </div>
+    <script type="module" src="/src/app.jsx"></script>
+  </body>
+</html>
