@@ -324,8 +324,8 @@ src/dashboard/         the shop owner's dashboard at /app
   Settings.jsx         shop, members, automation tokens, sample data
   copy.js              its own dictionary — it shares no words with the pitch
 shared/orderSchema.js  statuses, money, limits, validation (client & Worker)
-migrations/            D1 schema
 worker/
+  schema.js            the dashboard's tables, and the code that applies them
   db.js                every query, each one scoped to a shop
   app.js               /api/app/* — tenancy, orders, catalog, report, ingest
   http.js              shared body cap and JSON helpers
@@ -540,19 +540,37 @@ The dashboard needs a database, and `wrangler.jsonc` ships with the binding
 **commented out** — a deploy is rejected outright for a `database_id`
 Cloudflare does not recognise, so a placeholder would break every deploy until
 someone noticed. Until the binding exists, `/api/app/*` answers
-`503 database_not_configured`, the dashboard says so in plain words, and
-nothing else on the site changes.
+`503 database_not_configured` and the dashboard says so in plain words; nothing
+else on the site changes.
 
-```sh
-npx wrangler d1 create telegram-dashboard
-# paste the printed database_id into wrangler.jsonc and uncomment the block
-npx wrangler d1 migrations apply telegram-dashboard --remote
-npx wrangler deploy
-```
+**None of the setup needs a terminal**, which matters because whoever
+administers this may not have one:
 
-Then set `ADMIN_TELEGRAM_IDS` (Variables and Secrets, comma-separated) to the
-studio's own Telegram ids. `/api/health` reports `dashboardDb` and
-`dashboardAdmins` so both are one request away from being obvious.
+1. **Create the database.** Cloudflare dashboard → Storage & Databases → D1 →
+   *Create database*, named `telegram-dashboard`. Copy the **Database ID** it
+   shows.
+2. **Bind it.** Paste that id into the `d1_databases` block in
+   `wrangler.jsonc` and uncomment it. Deploying is the usual push to `main`.
+3. **Nothing else.** The Worker creates its own tables on the first request
+   that needs one — `worker/schema.js` holds the schema and a small runner
+   that applies any migration the database has not recorded yet. It is
+   idempotent, checked once per isolate, and two isolates racing on a brand
+   new database is not a case that needs locking.
+4. **Say who the studio is.** Set `ADMIN_TELEGRAM_IDS` under Variables and
+   Secrets, comma-separated.
+
+`/api/health` reports `dashboardDb` and `dashboardAdmins`, so both are one
+request away from being obvious.
+
+**Finding your Telegram id:** sign in at `/app` and it is on the screen —
+`/api/app/session` answers even with no database bound, precisely so the id
+needed to finish the setup is not behind the database being set up. Failing
+that, `/api/auth/telegram/me` returns it as JSON once you are signed in
+anywhere on the site.
+
+To add a migration later, append to `MIGRATIONS` in `worker/schema.js` with a
+new id. Never edit one that has shipped: a database that already applied it
+will not run it again.
 
 ### Who can see what
 

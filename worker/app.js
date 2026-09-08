@@ -22,6 +22,7 @@
 
 import { currentUser, isAuthConfigured } from "./auth.js";
 import { jsonPrivate, readBody } from "./http.js";
+import { ensureSchema } from "./schema.js";
 import { clientKey, overLimit } from "./ratelimit.js";
 import {
   addMember,
@@ -106,11 +107,17 @@ async function shopContext(db, actor, url, { role } = {}) {
 
 /* ---- signed-in routes ---- */
 
+/* Answers with or without a database, which is the one thing here that must.
+   Somebody setting this up needs their own Telegram id to put in
+   ADMIN_TELEGRAM_IDS, and this is where the dashboard reads it off — so it
+   cannot be behind the database they are still trying to configure. */
 async function handleSession(request, env, db, actor) {
-  /* The one place a member's own name can be learned: the studio adds them by
-     id, and this is the first request that knows who that id is. */
-  if (actor) await refreshMemberIdentity(db, actor.user);
-  const memberships = actor ? await membershipsFor(db, actor.user.id) : [];
+  if (db && actor) {
+    /* The one place a member's own name can be learned: the studio adds them
+       by id, and this is the first request that knows who that id is. */
+    await refreshMemberIdentity(db, actor.user);
+  }
+  const memberships = db && actor ? await membershipsFor(db, actor.user.id) : [];
   return jsonPrivate({
     configured: isAuthConfigured(env),
     database: hasDb(env),
@@ -358,16 +365,35 @@ async function handleDemo(db, context) {
 
 export async function handleApp(request, env, url) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204 });
-  if (!hasDb(env)) {
+
+  const segments = url.pathname.slice(PREFIX.length).split("/").filter(Boolean);
+  const db = hasDb(env) ? env.DB : null;
+
+  if (!db) {
+    /* Everything except "who am I" needs somewhere to keep rows. That one
+       answers anyway, so the dashboard can say what is missing and show the
+       id needed to finish setting it up. */
+    if (segments[0] === "session") {
+      return handleSession(request, env, null, await actorFor(request, env));
+    }
     return fail("database_not_configured", 503, {
-      hint: "Create the D1 database and put its id in wrangler.jsonc — see the README.",
+      hint: "Create a D1 database and put its id in wrangler.jsonc — see the README.",
     });
   }
 
-  const db = env.DB;
-  const segments = url.pathname.slice(PREFIX.length).split("/").filter(Boolean);
+  /* The schema applies itself on the first request into a cold isolate, so
+     nobody needs a terminal to run migrations. Idempotent, and checked once
+     per isolate rather than once per request. */
+  try {
+    await ensureSchema(db);
+  } catch (err) {
+    console.error("Dashboard schema could not be applied:", err.message);
+    return fail("schema_unavailable", 503, { hint: err.message });
+  }
+
   const [head, second, third] = segments;
   const post = request.method === "POST";
+
 
   /* The automation's endpoint authenticates with its own token and must be
      reachable before any of the session handling below. */

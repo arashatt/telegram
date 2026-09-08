@@ -134,13 +134,6 @@ export default function Dashboard() {
 
   if (state.status === "loading") {
     body = <p className="dash__note">{t("loading")}</p>;
-  } else if (state.status === "error" && state.code === "database_not_configured") {
-    body = (
-      <div className="dash__card">
-        <h2>{t("dbMissingTitle")}</h2>
-        <p>{t("dbMissingBody")}</p>
-      </div>
-    );
   } else if (state.status === "error") {
     body = (
       <div className="dash__card">
@@ -167,6 +160,22 @@ export default function Dashboard() {
           </button>
         )}
         {session.failed && <p className="dash__error">{t("signInFailed")}</p>}
+      </div>
+    );
+  } else if (state.database === false) {
+    /* Signed in, but there is nowhere to keep anything yet. Their own id is
+       on this card because it is the next thing they need — it goes in
+       ADMIN_TELEGRAM_IDS — and asking somebody to find it elsewhere while
+       they are standing here is unkind. */
+    body = (
+      <div className="dash__card">
+        <h2>{t("dbMissingTitle")}</h2>
+        <p>{t("dbMissingBody")}</p>
+        <p className="dash__idrow">
+          <span>{t("yourId")}</span>
+          <code dir="ltr">{state.user.id}</code>
+        </p>
+        <p className="dash__note">{t("dbMissingId")}</p>
       </div>
     );
   } else if (!shop) {

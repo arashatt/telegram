@@ -31,7 +31,8 @@ export const DASHBOARD_COPY = {
 
     dbMissingTitle: "The database is not set up",
     dbMissingBody:
-      "This deployment has no D1 database bound yet, so there is nowhere to keep orders. The README has the two commands.",
+      "No database is bound to this deployment yet, so there is nowhere to keep orders. Create one, put its id in wrangler.jsonc, and this screen becomes your shop — the schema applies itself on the first request.",
+    dbMissingId: "Keep this: it is what goes in ADMIN_TELEGRAM_IDS.",
 
     tabOrders: "Orders",
     tabCatalog: "Catalog",
@@ -154,7 +155,8 @@ export const DASHBOARD_COPY = {
 
     dbMissingTitle: "پایگاه داده راه‌اندازی نشده",
     dbMissingBody:
-      "روی این استقرار هنوز پایگاه داده‌ای وصل نیست، پس جایی برای نگهداری سفارش‌ها وجود ندارد.",
+      "هنوز پایگاه داده‌ای به این استقرار وصل نیست، پس جایی برای نگهداری سفارش‌ها نیست. یکی بسازید و شناسه‌اش را در wrangler.jsonc بگذارید؛ ساختار جدول‌ها خودش در نخستین درخواست ساخته می‌شود.",
+    dbMissingId: "این را نگه دارید: همان چیزی است که در ADMIN_TELEGRAM_IDS می‌رود.",
 
     tabOrders: "سفارش‌ها",
     tabCatalog: "کاتالوگ",
