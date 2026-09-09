@@ -73,6 +73,24 @@ redeploy so the new values are picked up.
 overwrite dashboard-set variables on every deploy, which would silently undo a
 change made in the panel.
 
+### When a brief will not deliver
+
+`/api/health` can only say the two Telegram settings are *present*. When they
+are and submission still fails, the reason belongs to Telegram — a revoked
+token, a chat id for a chat the bot cannot see, a bot nobody has pressed Start
+on — and only Telegram can name it.
+
+`GET /api/health/telegram` asks. It calls `getMe` and `getChat` and hands back
+what Telegram said, with a plain-language hint for the handful of causes that
+account for almost all of them. It never echoes the token or the chat id, and
+the chat's title is left out deliberately — the type (private, group,
+supergroup, channel) is the diagnostic part.
+
+`getChat` succeeding is still not proof: a private chat resolves and then
+refuses the send, because a bot may not open a conversation. `?send=1` settles
+it by actually sending one line. That one needs a signed-in session — otherwise
+anyone who found the URL could put messages in your chat.
+
 ### Checking it worked
 
 ```sh
@@ -702,6 +720,7 @@ the home page.
 | `POST /api/extract` | `{ text, lang }` | `{ prefill }` — `{}` on any failure |
 | `POST /api/requirements` | `{ form, lang, transcript, website }` | `{ ok, reference }` |
 | `GET /api/health` | — | `{ ok, checks, missing }` — config state, no values |
+| `GET /api/health/telegram` | `?send=1` | what Telegram itself says about the token and the chat |
 | `GET /api/auth/telegram/start` | — | `302` to Telegram |
 | `GET /api/auth/telegram/callback` | `?code&state` | popup-closing page, sets session |
 | `GET /api/auth/telegram/me` | — | `{ user, configured }` |

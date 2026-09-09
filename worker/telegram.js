@@ -259,6 +259,107 @@ export async function notifyVisitor(env, submission) {
   }
 }
 
+/* Asks Telegram what is actually wrong.
+
+   /api/health can only say whether the two settings are *present*. When they
+   are and delivery still fails, the reason is on Telegram's side — a revoked
+   token, a chat id for a chat this bot cannot see, a bot nobody has ever
+   pressed Start on — and only Telegram can say which. It says so in the
+   `description` of its own error, so this hands that back rather than making
+   somebody read it out of the logs.
+
+   Nothing here echoes the token, and the chat's title is deliberately left
+   out: the type alone (private, group, supergroup, channel) is what makes the
+   answer diagnostic. */
+async function ask(token, method, body) {
+  try {
+    const res = await fetch(`${TELEGRAM_API}/bot${token}/${method}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body ?? {}),
+    });
+    const payload = await res.json().catch(() => ({}));
+    return payload.ok
+      ? { ok: true, result: payload.result }
+      : { ok: false, status: res.status, error: payload.description ?? `HTTP ${res.status}` };
+  } catch (err) {
+    /* A network failure is not a Telegram rejection, and conflating the two
+       would send somebody looking for a bad token that is perfectly fine. */
+    return { ok: false, status: 0, error: `could not reach Telegram: ${err.message}` };
+  }
+}
+
+/* The one case getChat cannot catch: a private chat resolves fine, and then
+   sendMessage is refused because a bot may not open a conversation. */
+const HINTS = [
+  [/unauthorized/i, "The bot token is wrong or has been revoked. Get a fresh one from @BotFather."],
+  [
+    /chat not found/i,
+    "No chat with that id, as far as this bot can see. A supergroup id starts with -100; a personal chat id is the number @userinfobot gives you.",
+  ],
+  [
+    /bot was blocked/i,
+    "The person on the other end has blocked this bot. Unblock it and send it /start.",
+  ],
+  [
+    /not a member|bot is not a member|kicked/i,
+    "The bot is not in that chat. Add it to the group, or use a chat it is already in.",
+  ],
+  [
+    /can'?t initiate conversation|bot can'?t initiate/i,
+    "A bot cannot message you first. Open the bot in Telegram and press Start once.",
+  ],
+  [
+    /not enough rights|have no rights/i,
+    "The bot is in the chat but is not allowed to post there. Give it permission to send messages.",
+  ],
+];
+
+const hintFor = (error) => HINTS.find(([pattern]) => pattern.test(error ?? ""))?.[1];
+
+export async function diagnoseTelegram(env, { send = false } = {}) {
+  const token = env?.TELEGRAM_BOT_TOKEN;
+  const chatId = env?.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) {
+    return {
+      ok: false,
+      configured: false,
+      hint: "TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are not both set on this Worker.",
+    };
+  }
+
+  const me = await ask(token, "getMe");
+  const bot = me.ok
+    ? { ok: true, username: me.result?.username ? `@${me.result.username}` : null }
+    : { ok: false, error: me.error };
+  if (!bot.ok) {
+    return { ok: false, configured: true, bot, hint: hintFor(me.error) };
+  }
+
+  const chat = await ask(token, "getChat", { chat_id: chatId });
+  const seen = chat.ok
+    ? { ok: true, type: chat.result?.type ?? null }
+    : { ok: false, error: chat.error };
+
+  const result = { ok: seen.ok, configured: true, bot, chat: seen, hint: hintFor(chat.error) };
+
+  /* getChat succeeding is not proof that a message will land — a private chat
+     the bot has never been started in resolves and then refuses. Only an
+     actual send settles it, which is why this is offered at all. */
+  if (send && seen.ok) {
+    const sent = await ask(token, "sendMessage", {
+      chat_id: chatId,
+      text: "Test message from your intake site. Delivery works.",
+      ...(env.TELEGRAM_TOPIC_ID ? { message_thread_id: Number(env.TELEGRAM_TOPIC_ID) } : {}),
+    });
+    result.sent = sent.ok ? { ok: true } : { ok: false, error: sent.error };
+    result.ok = sent.ok;
+    if (!sent.ok) result.hint = hintFor(sent.error) ?? result.hint;
+  }
+
+  return result;
+}
+
 export function isTelegramConfigured(env) {
   return Boolean(env?.TELEGRAM_BOT_TOKEN && env?.TELEGRAM_CHAT_ID);
 }

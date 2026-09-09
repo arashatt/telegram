@@ -19,7 +19,13 @@ import { handleApp, isAppRoute } from "./app.js";
 import { hasDb } from "./db.js";
 import { CORS, json, readBody } from "./http.js";
 import { clientKey, overLimit } from "./ratelimit.js";
-import { canMessageVisitor, deliverBrief, isTelegramConfigured, notifyVisitor } from "./telegram.js";
+import {
+  canMessageVisitor,
+  deliverBrief,
+  diagnoseTelegram,
+  isTelegramConfigured,
+  notifyVisitor,
+} from "./telegram.js";
 import {
   chatSystemPrompt,
   extractionMessages,
@@ -38,7 +44,7 @@ import {
 /* Bumped whenever something ships that is hard to confirm from the outside.
    /api/health echoes it, so "is the deploy actually live?" is one request
    rather than an inference from symptoms. */
-const BUILD = "2026-09-08-dashboard-db-live";
+const BUILD = "2026-09-09-telegram-check";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
@@ -300,6 +306,33 @@ function handleHealth(request, env) {
   );
 }
 
+/* When /api/health says both Telegram settings are present and a brief still
+   will not deliver, the reason is Telegram's and only Telegram can give it.
+   This asks.
+
+   The read is public because it answers in booleans and Telegram's own error
+   text — nothing an attacker could not learn by submitting the form. Actually
+   *sending* a test message is not: it would let anyone use this Worker to put
+   messages in somebody's chat, so it needs a signed-in session. */
+async function handleTelegramCheck(request, env) {
+  if (await overLimit(env.AUTH_LIMIT, clientKey(request))) return json({ error: "rate_limited" }, 429);
+
+  const wantsSend = new URL(request.url).searchParams.get("send") === "1";
+  const signedIn = wantsSend ? await currentUser(request, env) : null;
+  if (wantsSend && !signedIn) {
+    return json(
+      {
+        error: "sign_in_required",
+        hint: "Sending a test message needs a signed-in session. Sign in on the site first, then reload this with ?send=1.",
+      },
+      401
+    );
+  }
+
+  const report = await diagnoseTelegram(env, { send: wantsSend });
+  return json(report, report.ok ? 200 : 503);
+}
+
 const POST_ROUTES = {
   "/api/chat/stream": handleChatStream,
   "/api/extract": handleExtract,
@@ -311,6 +344,7 @@ const POST_ROUTES = {
    /start redirects out to Telegram. */
 const GET_ROUTES = {
   "/api/health": handleHealth,
+  "/api/health/telegram": handleTelegramCheck,
   "/api/auth/telegram/start": handleAuthStart,
   "/api/auth/telegram/callback": handleAuthCallback,
   "/api/auth/telegram/me": handleAuthMe,
