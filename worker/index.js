@@ -16,7 +16,8 @@ import {
 } from "./auth.js";
 import { claudeModel, extract as claudeExtract, hasClaude, streamChat } from "./claude.js";
 import { handleApp, isAppRoute } from "./app.js";
-import { hasDb } from "./db.js";
+import { hasDb, markBriefDelivered, markBriefFailed, storeBrief } from "./db.js";
+import { ensureSchema } from "./schema.js";
 import { CORS, json, readBody } from "./http.js";
 import { clientKey, overLimit } from "./ratelimit.js";
 import {
@@ -44,7 +45,7 @@ import {
 /* Bumped whenever something ships that is hard to confirm from the outside.
    /api/health echoes it, so "is the deploy actually live?" is one request
    rather than an inference from symptoms. */
-const BUILD = "2026-09-09-telegram-check";
+const BUILD = "2026-09-10-briefs-kept";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
@@ -223,15 +224,65 @@ async function handleRequirements(request, env) {
     },
   };
 
+  /* Recorded before it is sent anywhere.
+
+     A frozen Telegram account once turned every submission here into a lost
+     lead: the brief was built, refused by Telegram, and dropped on the floor.
+     Whether a messenger is reachable has nothing to do with whether the
+     studio should keep the enquiry, so the database — when there is one —
+     gets it first, and delivery becomes the second thing that happens rather
+     than the only thing.
+
+     Storage failing is never allowed to fail a submission; the visitor has
+     done their part either way. */
+  const recorded = await recordBrief(env, submission);
+
   const { results } = await deliverBrief(env, submission);
-  if (!results.some((r) => r.ok)) return json({ error: "delivery_failed" }, 502);
+  const delivered = results.some((r) => r.ok);
+  await noteDelivery(env, recorded, reference, delivered, results);
+
+  /* 502 only when the brief is now nowhere: not delivered *and* not kept.
+     Telling somebody their submission failed when it is safely stored and
+     waiting to be retried would be a lie, and would cost the studio the
+     enquiry a second time when they gave up rather than resubmitting. */
+  if (!delivered && !recorded) return json({ error: "delivery_failed" }, 502);
 
   // Courtesy note to the visitor's own Telegram. Awaited so a failure is
-  // logged, but never allowed to fail the submission — the brief is already
-  // delivered by this point.
+  // logged, but never allowed to fail the submission.
   const notified = await notifyVisitor(env, submission);
 
-  return json({ ok: true, reference, notified: notified.sent });
+  return json({ ok: true, reference, notified: notified.sent, delivered });
+}
+
+async function recordBrief(env, submission) {
+  if (!hasDb(env)) return false;
+  try {
+    await ensureSchema(env.DB);
+    await storeBrief(env.DB, submission);
+    return true;
+  } catch (err) {
+    console.error("Could not record the brief:", err.stack ?? err.message);
+    return false;
+  }
+}
+
+/* Bookkeeping only — a failure here must not change what the visitor is
+   told, because by this point the brief has already been kept or sent. */
+async function noteDelivery(env, recorded, reference, delivered, results) {
+  if (!recorded) return;
+  try {
+    if (delivered) {
+      await markBriefDelivered(env.DB, reference);
+    } else {
+      await markBriefFailed(
+        env.DB,
+        reference,
+        results.map((r) => r.error).filter(Boolean).join("; ") || "no delivery channel configured"
+      );
+    }
+  } catch (err) {
+    console.error("Could not update the brief's delivery state:", err.message);
+  }
 }
 
 /* Reports which runtime settings the Worker can actually see, so a

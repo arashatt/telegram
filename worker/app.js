@@ -23,9 +23,12 @@
 import { currentUser, isAuthConfigured } from "./auth.js";
 import { jsonPrivate, readBody } from "./http.js";
 import { ensureSchema } from "./schema.js";
+import { deliverBrief } from "./telegram.js";
 import { clientKey, overLimit } from "./ratelimit.js";
 import {
   addMember,
+  briefCounts,
+  briefPayload,
   createProduct,
   createShop,
   createToken,
@@ -33,11 +36,14 @@ import {
   getOrder,
   getShop,
   hasDb,
+  listBriefs,
   listEvents,
   listMembers,
   listOrders,
   listProducts,
   listTokens,
+  markBriefDelivered,
+  markBriefFailed,
   membershipsFor,
   orderCounts,
   recordEvent,
@@ -229,6 +235,62 @@ async function handleMemberRemove(request, db, context) {
   return ok({ members: await listMembers(db, context.shopId) });
 }
 
+/* ---- submitted briefs ----
+
+   The studio's own enquiries, not a shop's rows — which is why this sits
+   outside the shop-scoped routes below and is gated on ADMIN_TELEGRAM_IDS
+   rather than on membership. A studio account that belongs to no shop still
+   needs to read these; that is the whole point of them existing. */
+
+/* Bounded per call so a long backlog is several requests rather than one that
+   runs past the Worker's time limit. */
+const RETRY_BATCH = 20;
+
+async function handleBriefs(request, env, db, actor, url, second) {
+  if (!actor.admin) return fail("forbidden", 403);
+
+  if (request.method !== "POST") {
+    const page = await listBriefs(db, {
+      undelivered: url.searchParams.get("undelivered") === "1",
+      before: url.searchParams.get("before") ?? undefined,
+      limit: url.searchParams.get("limit") ?? 30,
+    });
+    return jsonPrivate({ ...page, counts: await briefCounts(db) });
+  }
+
+  if (second !== "retry") return fail("not_found", 404);
+
+  const { body, invalid } = await readBody(request);
+  if (invalid) return fail("invalid_json", 400);
+
+  /* One named brief, or the oldest-first backlog. Retrying sends the stored
+     submission as it was assembled, not a reconstruction of it. */
+  const targets = body?.reference
+    ? [{ reference: text(body.reference, LIMITS.ref) }]
+    : (await listBriefs(db, { undelivered: true, limit: RETRY_BATCH })).briefs;
+
+  let sent = 0;
+  let failed = 0;
+  const errors = [];
+
+  for (const target of targets) {
+    const payload = await briefPayload(db, target.reference);
+    if (!payload) continue;
+    const { results } = await deliverBrief(env, payload);
+    if (results.some((r) => r.ok)) {
+      await markBriefDelivered(db, target.reference);
+      sent += 1;
+    } else {
+      const why = results.map((r) => r.error).filter(Boolean).join("; ") || "no delivery channel";
+      await markBriefFailed(db, target.reference, why);
+      failed += 1;
+      if (errors.length < 3) errors.push(why);
+    }
+  }
+
+  return ok({ sent, failed, errors, counts: await briefCounts(db) });
+}
+
 /* ---- the automation's way in ---- */
 
 async function handleIngest(request, env, db) {
@@ -394,7 +456,6 @@ export async function handleApp(request, env, url) {
   const [head, second, third] = segments;
   const post = request.method === "POST";
 
-
   /* The automation's endpoint authenticates with its own token and must be
      reachable before any of the session handling below. */
   if (head === "ingest") {
@@ -412,6 +473,9 @@ export async function handleApp(request, env, url) {
   if (head === "session") return handleSession(request, env, db, actor);
   if (!actor) return fail("unauthorized", 401);
   if (head === "shops" && post) return handleCreateShop(request, env, db, actor);
+  /* Before the shop lookup: these belong to the studio, not to a shop, and a
+     studio account may be a member of none. */
+  if (head === "briefs") return handleBriefs(request, env, db, actor, url, second);
 
   const context = await shopContext(db, actor, url, {
     role: (head === "settings" && post) || head === "members" || head === "tokens" ? "owner" : undefined,

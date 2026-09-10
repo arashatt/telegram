@@ -715,3 +715,115 @@ export async function weeklyReport(db, shopId, { at = now(), days = 7 } = {}) {
     statusCounts: counts,
   };
 }
+
+/* ---- submitted briefs ----
+
+   Not shop-scoped, unlike everything above: a brief is an enquiry addressed to
+   the studio, not a row belonging to one of its clients' shops. Only the
+   studio's own accounts — ADMIN_TELEGRAM_IDS — can read these, which
+   worker/app.js enforces before any of them is called. */
+
+export async function storeBrief(db, submission) {
+  const id = newId("brief");
+  const at = now();
+  const form = submission?.form ?? {};
+  const contact = [form.contactName, form.email, form.telegram, form.phone]
+    .filter(Boolean)
+    .join(" · ");
+
+  await db
+    .prepare(
+      `INSERT INTO briefs (id, reference, platform, lang, bot_name, summary, contact,
+                           payload, delivered_at, attempts, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, ?)
+       ON CONFLICT (reference) DO NOTHING`
+    )
+    .bind(
+      id,
+      String(submission?.reference ?? id),
+      String(submission?.platform ?? "telegram"),
+      String(submission?.lang ?? "en"),
+      text(form.botName, LIMITS.title),
+      text(form.summary, 500),
+      text(contact, 300),
+      /* The whole submission as it was assembled, so a retry sends what was
+         originally meant rather than something rebuilt from columns. */
+      JSON.stringify(submission),
+      at
+    )
+    .run();
+
+  return { id, at };
+}
+
+export async function markBriefDelivered(db, reference) {
+  await db
+    .prepare(`UPDATE briefs SET delivered_at = ?, last_error = '' WHERE reference = ?`)
+    .bind(now(), String(reference))
+    .run();
+}
+
+export async function markBriefFailed(db, reference, message) {
+  await db
+    .prepare(
+      `UPDATE briefs SET attempts = attempts + 1, last_error = ? WHERE reference = ?`
+    )
+    .bind(text(message, 300), String(reference))
+    .run();
+}
+
+export async function listBriefs(db, { limit = 30, before, undelivered = false } = {}) {
+  const size = integer(limit, { min: 1, max: 100 });
+  const clauses = [];
+  const values = [];
+  if (undelivered) clauses.push("delivered_at IS NULL");
+  if (before) {
+    clauses.push("created_at < ?");
+    values.push(integer(before, { min: 0 }));
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+
+  const { results } = await db
+    .prepare(
+      `SELECT id, reference, platform, lang, bot_name AS botName, summary, contact,
+              delivered_at AS deliveredAt, attempts, last_error AS lastError,
+              created_at AS createdAt
+         FROM briefs ${where}
+        ORDER BY created_at DESC
+        LIMIT ?`
+    )
+    .bind(...values, size + 1)
+    .all();
+
+  const rows = results ?? [];
+  const page = rows.slice(0, size);
+  return {
+    briefs: page,
+    cursor: rows.length > size ? page[page.length - 1].createdAt : null,
+  };
+}
+
+/* The stored submission, parsed back into the shape deliverBrief expects. */
+export async function briefPayload(db, reference) {
+  const row = await db
+    .prepare(`SELECT payload FROM briefs WHERE reference = ?`)
+    .bind(String(reference))
+    .first();
+  if (!row) return null;
+  try {
+    return JSON.parse(row.payload);
+  } catch {
+    return null;
+  }
+}
+
+export async function briefCounts(db) {
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN delivered_at IS NULL THEN 1 ELSE 0 END) AS undelivered
+         FROM briefs`
+    )
+    .first();
+  return { total: row?.total ?? 0, undelivered: row?.undelivered ?? 0 };
+}

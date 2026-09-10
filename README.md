@@ -73,6 +73,31 @@ redeploy so the new values are picked up.
 overwrite dashboard-set variables on every deploy, which would silently undo a
 change made in the panel.
 
+### A brief is never lost
+
+Delivery used to be the only thing that happened to a submission: built,
+handed to Telegram, and dropped if Telegram refused. A frozen Telegram account
+turned every enquiry into a lost lead that way.
+
+Now, when a database is bound, the brief is **written down before it is sent**.
+Delivery is the second thing that happens rather than the only one, and a
+submission is answered `200` with `delivered: false` — the visitor did their
+part, and telling them otherwise would cost the studio the enquiry twice when
+they gave up rather than resubmitting. A `502` is returned only when the brief
+is genuinely nowhere: not delivered *and* not kept, which is what a deployment
+with no database still does.
+
+Waiting briefs are the studio's, not a shop's, so they sit outside the
+shop-scoped routes and are gated on `ADMIN_TELEGRAM_IDS`:
+
+| Route | What it does |
+| --- | --- |
+| `GET /api/app/briefs` | everything submitted, newest first; `?undelivered=1` for the backlog |
+| `POST /api/app/briefs/retry` | re-sends up to 20 waiting briefs, or one named `{ "reference": "REQ-…" }` |
+
+A retry sends the stored submission as it was assembled, not a reconstruction
+of it, and records the attempt and the reason either way.
+
 ### When a brief will not deliver
 
 `/api/health` can only say the two Telegram settings are *present*. When they
@@ -726,6 +751,8 @@ the home page.
 | `GET /api/auth/telegram/me` | — | `{ user, configured }` |
 | `POST /api/auth/telegram/logout` | — | `{ ok }` |
 | `GET /api/app/session` | — | `{ user, shops, admin, database }` |
+| `GET /api/app/briefs` | `?undelivered&before` | submitted briefs — studio only |
+| `POST /api/app/briefs/retry` | `{ reference? }` | re-send the backlog, or one |
 | `GET /api/app/overview` | `?shop` | shop, counts, recent orders, report |
 | `GET /api/app/orders` | `?shop&status&before&limit` | `{ orders, cursor, counts }` |
 | `GET /api/app/orders/:id` | `?shop` | order with its lines and its events |

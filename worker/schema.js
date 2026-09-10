@@ -121,7 +121,44 @@ CREATE INDEX IF NOT EXISTS idx_events_shop_at ON events (shop_id, at DESC);
 CREATE INDEX IF NOT EXISTS idx_events_thread ON events (shop_id, customer, at);
 `;
 
-export const MIGRATIONS = [{ id: "0001_dashboard", sql: DASHBOARD_0001 }];
+/* Submitted briefs, kept whether or not they were delivered.
+
+   Added the day a frozen Telegram account turned every submission into a lost
+   lead: the brief was built, handed to Telegram, refused, and dropped. Nothing
+   about a messenger being unavailable should cost the studio the enquiry.
+
+   The visitor typed this to be read by the studio and it was always going to
+   land in the studio's chat. Keeping a copy in the studio's own database
+   sends the same data to the same audience — it is not a change of purpose.
+   `delivered_at` is what makes a retry possible; `payload` is the whole
+   submission as it was rendered, so a retry sends what was originally meant
+   rather than a reconstruction. */
+const BRIEFS_0002 = `
+CREATE TABLE IF NOT EXISTS briefs (
+  id            TEXT PRIMARY KEY,
+  reference     TEXT NOT NULL,
+  platform      TEXT NOT NULL DEFAULT 'telegram',
+  lang          TEXT NOT NULL DEFAULT 'en',
+  bot_name      TEXT NOT NULL DEFAULT '',
+  summary       TEXT NOT NULL DEFAULT '',
+  contact       TEXT NOT NULL DEFAULT '',
+  payload       TEXT NOT NULL,
+  delivered_at  INTEGER,
+  attempts      INTEGER NOT NULL DEFAULT 0,
+  last_error    TEXT NOT NULL DEFAULT '',
+  created_at    INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_briefs_created ON briefs (created_at DESC);
+-- The query that matters on a bad day: what has not gone out yet.
+CREATE INDEX IF NOT EXISTS idx_briefs_undelivered ON briefs (delivered_at, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_briefs_reference ON briefs (reference);
+`;
+
+export const MIGRATIONS = [
+  { id: "0001_dashboard", sql: DASHBOARD_0001 },
+  { id: "0002_briefs", sql: BRIEFS_0002 },
+];
 
 /* Comments go first, including trailing ones: the file is split on semicolons,
    and a `--` left in place would swallow the start of the next statement. No
