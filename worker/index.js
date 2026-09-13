@@ -6,6 +6,7 @@ import {
   sanitizeQuestions,
 } from "../shared/questionModules.js";
 import {
+  clientId,
   currentUser,
   handleAuthCallback,
   handleAuthLogout,
@@ -45,7 +46,7 @@ import {
 /* Bumped whenever something ships that is hard to confirm from the outside.
    /api/health echoes it, so "is the deploy actually live?" is one request
    rather than an inference from symptoms. */
-const BUILD = "2026-09-10-briefs-kept";
+const BUILD = "2026-09-13-oidc-ids";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
@@ -328,6 +329,12 @@ function handleHealth(request, env) {
   if (chatId && String(chatId) !== String(chatId).trim()) {
     warnings.push("TELEGRAM_CHAT_ID has leading or trailing whitespace");
   }
+  if (env.TELEGRAM_CLIENT_SECRET && !env.TELEGRAM_CLIENT_ID) {
+    warnings.push(
+      "TELEGRAM_CLIENT_ID is unset, so the built-in default is being used. " +
+        "If you registered your own Telegram app, set it to that app's id."
+    );
+  }
   const token = env.TELEGRAM_BOT_TOKEN;
   if (token && !/^\d+:[A-Za-z0-9_-]{20,}$/.test(String(token).trim())) {
     warnings.push("TELEGRAM_BOT_TOKEN does not look like a BotFather token (123456789:AA...)");
@@ -340,6 +347,12 @@ function handleHealth(request, env) {
       // The exact string Telegram must have registered as the redirect URI.
       // A mismatch here is the usual reason sign-in bounces back with an error.
       redirectUri: redirectUri(request, env),
+      // The other half of that pair, and public — it travels in the
+      // authorization URL as a query parameter. Reported because a client id
+      // that does not match the registered app fails sign-in with nothing to
+      // see: the secret is present, the redirect is right, and it still bounces.
+      clientId: clientId(env),
+      origin: new URL(request.url).origin,
       checks,
       missing,
       warnings: warnings.length ? warnings : undefined,
