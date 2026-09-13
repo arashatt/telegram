@@ -226,8 +226,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 10px;
   font-size: 13px;
+}
+
+/* Nineteen digits do not fit a phone in one line, and breaking them anywhere
+   is better than a sideways scroll. */
+.dash__idrow code {
+  word-break: break-all;
 }
 
 .dash__idrow code,

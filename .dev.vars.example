@@ -54,12 +54,16 @@ TELEGRAM_CLIENT_SECRET=your-oidc-client-secret
 # ANTHROPIC_BASE_URL=https://gateway.example.com/anthropic
 
 # --- The shop owner's dashboard at /app ------------------------------------
-# Telegram ids allowed to create a shop, comma-separated. These are the
-# studio's own accounts; it grants creating a shop and nothing else — an admin
-# who is not a member of a shop still cannot read that shop's orders.
+# Who may create a shop, comma-separated. It grants that and nothing else — an
+# admin who is not a member of a shop still cannot read that shop's orders.
 # Leave it unset and no shop can be created, which is the right state until
 # the D1 database exists.
-# ADMIN_TELEGRAM_IDS=8928298590,123456789
+#
+# NOT the account number @userinfobot reports. Telegram's sign-in gives this
+# site a subject id of its own, scoped to this site, and that is what the
+# Worker compares against — a much longer number. Read it off /app: sign in
+# and it is on screen, with a copy button. The variable's name is historical.
+# ADMIN_TELEGRAM_IDS=7027960623470478911,7027960623470478912
 #
 # The database itself is not a variable: it is a binding, and it lives in
 # wrangler.jsonc — see the commented d1_databases block there, and the README.

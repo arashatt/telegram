@@ -605,11 +605,14 @@ administers this may not have one:
 `/api/health` reports `dashboardDb` and `dashboardAdmins`, so both are one
 request away from being obvious.
 
-**Finding your Telegram id:** sign in at `/app` and it is on the screen —
-`/api/app/session` answers even with no database bound, precisely so the id
-needed to finish the setup is not behind the database being set up. Failing
-that, `/api/auth/telegram/me` returns it as JSON once you are signed in
-anywhere on the site.
+**Finding your sign-in id:** sign in at `/app` and it is on the screen, with a
+copy button — `/api/app/session` answers even with no database bound, precisely
+so the id needed to finish the setup is not behind the database being set up.
+`/api/auth/telegram/me` returns the same value as JSON.
+
+It is the `sub` claim of Telegram's id_token, which is scoped to this site
+rather than global, so no other tool can tell you what it is. @userinfobot's
+number is a different identifier and will not match.
 
 To add a migration later, append to `MIGRATIONS` in `worker/schema.js` with a
 new id. Never edit one that has shipped: a database that already applied it
@@ -621,7 +624,11 @@ There is no second account system: identity is the Telegram sign-in the intake
 pages already use, and `shop_members` maps a Telegram id to a shop.
 
 - **Studio admins** (`ADMIN_TELEGRAM_IDS`) may create a shop, and whoever
-  creates one owns it. That is *all* the flag grants — an admin who is not a
+  creates one owns it. The ids in it are **not** the account numbers
+  @userinfobot reports: Telegram's sign-in issues this site a subject id of its
+  own, scoped to this site, and that is what every check compares against. It
+  is a much longer number, and the way to get it is to sign in at `/app`, where
+  it is on screen with a copy button. The variable's name is historical. That is *all* the flag grants — an admin who is not a
   member of a shop cannot read that shop's orders. Support access to a client's
   data should be a deliberate membership, not a side effect of being staff.
 - **Owners** change the shop, add and remove members, mint automation tokens

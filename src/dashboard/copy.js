@@ -22,8 +22,14 @@ export const DASHBOARD_COPY = {
 
     noShopTitle: "No shop yet",
     noShopBody:
-      "Your Telegram account is not on a shop yet. Send the studio the id below and they will add you.",
-    yourId: "Your Telegram id",
+      "Your account is not on a shop yet. Send the studio the id below and they will add you.",
+    yourId: "Your sign-in id",
+    /* Telegram's sign-in gives this site a subject id of its own, scoped to
+       this site — it is not the account number @userinfobot reports, and the
+       two are different lengths. Saying so here saves the next person the
+       afternoon it cost the first one. */
+    yourIdNote:
+      "This is the id this site knows you by. It is not the shorter number @userinfobot shows — use this one.",
     createShop: "Create a shop",
     createShopName: "Shop name",
     createShopHandle: "Instagram @handle",
@@ -32,7 +38,7 @@ export const DASHBOARD_COPY = {
     dbMissingTitle: "The database is not set up",
     dbMissingBody:
       "No database is bound to this deployment yet, so there is nowhere to keep orders. Create one, put its id in wrangler.jsonc, and this screen becomes your shop — the schema applies itself on the first request.",
-    dbMissingId: "Keep this: it is what goes in ADMIN_TELEGRAM_IDS.",
+    dbMissingId: "Keep this: it is what goes in ADMIN_TELEGRAM_IDS — this number, not a shorter one.",
 
     tabOrders: "Orders",
     tabCatalog: "Catalog",
@@ -98,8 +104,8 @@ export const DASHBOARD_COPY = {
     shopHandle: "Instagram @handle",
     shopCurrency: "Currency",
     membersSection: "Who can see this shop",
-    memberAdd: "Add by Telegram id",
-    memberId: "Telegram id",
+    memberAdd: "Add by sign-in id",
+    memberId: "Their sign-in id",
     memberRole: "Role",
     roleOwner: "Owner",
     roleStaff: "Staff",
@@ -146,8 +152,10 @@ export const DASHBOARD_COPY = {
 
     noShopTitle: "هنوز فروشگاهی ندارید",
     noShopBody:
-      "حساب تلگرام شما هنوز به فروشگاهی وصل نیست. شناسهٔ زیر را برای استودیو بفرستید تا اضافه‌تان کنند.",
-    yourId: "شناسهٔ تلگرام شما",
+      "حساب شما هنوز به فروشگاهی وصل نیست. شناسهٔ زیر را برای استودیو بفرستید تا اضافه‌تان کنند.",
+    yourId: "شناسهٔ ورود شما",
+    yourIdNote:
+      "این شناسه‌ای است که این سایت شما را با آن می‌شناسد؛ با عددِ کوتاه‌ترِ @userinfobot فرق دارد — همین را بفرستید.",
     createShop: "ساخت فروشگاه",
     createShopName: "نام فروشگاه",
     createShopHandle: "آی‌دی اینستاگرام",
@@ -218,8 +226,8 @@ export const DASHBOARD_COPY = {
     shopHandle: "آی‌دی اینستاگرام",
     shopCurrency: "واحد پول",
     membersSection: "چه کسانی این فروشگاه را می‌بینند",
-    memberAdd: "افزودن با شناسهٔ تلگرام",
-    memberId: "شناسهٔ تلگرام",
+    memberAdd: "افزودن با شناسهٔ ورود",
+    memberId: "شناسهٔ ورود او",
     memberRole: "نقش",
     roleOwner: "مالک",
     roleStaff: "همکار",

@@ -171,10 +171,7 @@ export default function Dashboard() {
       <div className="dash__card">
         <h2>{t("dbMissingTitle")}</h2>
         <p>{t("dbMissingBody")}</p>
-        <p className="dash__idrow">
-          <span>{t("yourId")}</span>
-          <code dir="ltr">{state.user.id}</code>
-        </p>
+        <IdRow t={t} id={state.user.id} />
         <p className="dash__note">{t("dbMissingId")}</p>
       </div>
     );
@@ -273,6 +270,34 @@ export default function Dashboard() {
   );
 }
 
+/* The one value somebody has to move by hand between this screen and either a
+   chat message or a Cloudflare variable — nineteen digits, which nobody should
+   be asked to retype. */
+function IdRow({ t, id }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = () => {
+    navigator.clipboard
+      ?.writeText(String(id))
+      .then(() => setCopied(true))
+      /* Clipboard access can be refused; the number is on screen to select. */
+      .catch(() => {});
+  };
+
+  return (
+    <>
+      <p className="dash__idrow">
+        <span>{t("yourId")}</span>
+        <code dir="ltr">{id}</code>
+        <button type="button" className="dash__link" onClick={copy}>
+          {copied ? t("copied") : t("copy")}
+        </button>
+      </p>
+      <p className="dash__note">{t("yourIdNote")}</p>
+    </>
+  );
+}
+
 /* Signed in, but on no shop. For the studio's own accounts that is a shop
    waiting to be created; for everybody else it is an id to send them. */
 function NoShop({ t, user, admin, onCreated }) {
@@ -296,10 +321,7 @@ function NoShop({ t, user, admin, onCreated }) {
     <div className="dash__card">
       <h2>{t("noShopTitle")}</h2>
       <p>{t("noShopBody")}</p>
-      <p className="dash__idrow">
-        <span>{t("yourId")}</span>
-        <code dir="ltr">{user.id}</code>
-      </p>
+      <IdRow t={t} id={user.id} />
 
       {admin && (
         <form className="dash__form" onSubmit={create}>
