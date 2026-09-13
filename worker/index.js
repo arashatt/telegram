@@ -52,7 +52,7 @@ import {
 /* Bumped whenever something ships that is hard to confirm from the outside.
    /api/health echoes it, so "is the deploy actually live?" is one request
    rather than an inference from symptoms. */
-const BUILD = "2026-09-13-redirect-checks";
+const BUILD = "2026-09-13-settings-presence";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
@@ -292,6 +292,41 @@ async function noteDelivery(env, recorded, reference, delivered, results) {
   }
 }
 
+/* Every setting this Worker reads, so "is it there?" is answerable for a name
+   that is not one of the required few. Order is the order they matter in. */
+const SETTING_NAMES = [
+  "TELEGRAM_BOT_TOKEN",
+  "TELEGRAM_CHAT_ID",
+  "TELEGRAM_TOPIC_ID",
+  "TELEGRAM_CLIENT_ID",
+  "TELEGRAM_CLIENT_SECRET",
+  "TELEGRAM_REDIRECT_URI",
+  "TELEGRAM_OIDC_ISSUER",
+  "TELEGRAM_OIDC_SCOPE",
+  "TELEGRAM_LOGIN_BOT_TOKEN",
+  "ADMIN_TELEGRAM_IDS",
+  "ANTHROPIC_API_KEY",
+  "CLAUDE_API_KEY",
+  "CLAUDE_MODEL",
+  "ANTHROPIC_BASE_URL",
+  "REQUIREMENTS_WEBHOOK_URL",
+  "REQUIREMENTS_WEBHOOK_SECRET",
+  "CHAT_MODEL",
+  "EXTRACT_MODEL",
+];
+
+/* "absent" and "empty" are different problems and Boolean() hides that. A
+   variable created with no value still occupies its name — Cloudflare refuses
+   to add a second one with it, and the panel gives an existing-but-blank entry
+   nothing to show — while every check here reads it as missing. Naming the
+   state is the difference between a five-minute fix and an afternoon.
+
+   Presence only. No value, no length, no prefix. */
+function presence(value) {
+  if (value === undefined || value === null) return "absent";
+  return String(value).trim() === "" ? "empty" : "set";
+}
+
 /* Reports which runtime settings the Worker can actually see, so a
    misconfiguration is one request away from being obvious instead of showing
    up as a failed submission.
@@ -409,6 +444,20 @@ async function handleHealth(request, env) {
     }
   }
 
+  const settings = Object.fromEntries(
+    SETTING_NAMES.map((name) => [name, presence(env[name])])
+  );
+  const blank = SETTING_NAMES.filter((name) => settings[name] === "empty");
+  if (blank.length) {
+    warnings.push(
+      `${blank.join(", ")} exist${blank.length === 1 ? "s" : ""} but ${
+        blank.length === 1 ? "its value is" : "their values are"
+      } empty. That is why Cloudflare says the name is taken while nothing shows ` +
+        "in the panel and every check here reads it as missing — edit the existing entry " +
+        "rather than adding a new one."
+    );
+  }
+
   const token = env.TELEGRAM_BOT_TOKEN;
   if (token && !/^\d+:[A-Za-z0-9_-]{20,}$/.test(String(token).trim())) {
     warnings.push("TELEGRAM_BOT_TOKEN does not look like a BotFather token (123456789:AA...)");
@@ -428,6 +477,10 @@ async function handleHealth(request, env) {
       clientId: clientId(env),
       origin: new URL(request.url).origin,
       checks,
+      // Every name this Worker reads, as absent / empty / set. An "empty" here
+      // is a variable that exists with no value: the name is taken, the panel
+      // has nothing to show for it, and every check above reads it as missing.
+      settings,
       // Present only when a database is bound. `undelivered` above zero is the
       // one number here that means somebody's enquiry is sitting unread.
       briefs,
