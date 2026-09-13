@@ -335,10 +335,22 @@ async function handleHealth(request, env) {
   if (chatId && String(chatId) !== String(chatId).trim()) {
     warnings.push("TELEGRAM_CHAT_ID has leading or trailing whitespace");
   }
+  /* Telegram's OAuth issuer is bot-based: the client_id it receives *is* a bot
+     id, which is why it answers "bot_id invalid" rather than anything about
+     clients when the value is not one. A bot id is the digits before the colon
+     in the bot's token, so both mistakes worth catching are shape mistakes. */
+  const oidcId = clientId(env);
   if (env.TELEGRAM_CLIENT_SECRET && !env.TELEGRAM_CLIENT_ID) {
     warnings.push(
-      "TELEGRAM_CLIENT_ID is unset, so the built-in default is being used. " +
-        "If you registered your own Telegram app, set it to that app's id."
+      "TELEGRAM_CLIENT_ID is unset, so the built-in default bot id is being used. " +
+        "Set it to the numeric part of your own bot's token — the digits before the colon."
+    );
+  }
+  if (!/^\d+$/.test(String(oidcId))) {
+    warnings.push(
+      "TELEGRAM_CLIENT_ID is not a plain number. Telegram signs in against a bot id: " +
+        "the digits before the colon in the bot token, not the whole token and not a @username. " +
+        "Telegram reports anything else as \"bot_id invalid\"."
     );
   }
   /* The number that says "delivery is broken" without anyone reading a log.

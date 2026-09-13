@@ -39,8 +39,15 @@ import {
    not ask for a permission you are not using. */
 const SCOPE = "openid profile phone telegram:bot_access";
 
-/* Public — it travels in the authorization URL, so it is a code default rather
-   than a secret. Override it from the dashboard to point at a different app. */
+/* Telegram's OAuth issuer is bot-based: this "client id" is a **bot id** — the
+   digits before the colon in that bot's token. Telegram says "bot_id invalid"
+   when it is anything else, including a bot that no longer exists.
+
+   Public, because it travels in the authorization URL as a query parameter.
+   It is a code default rather than a secret, and it points at this project's
+   original bot; any other deployment must set TELEGRAM_CLIENT_ID to its own.
+   The domain a bot will accept a sign-in from is set on the bot itself, with
+   @BotFather's /setdomain — there is no separate app registration. */
 const DEFAULT_CLIENT_ID = "8928298590";
 
 export const clientId = (env) => env?.TELEGRAM_CLIENT_ID || DEFAULT_CLIENT_ID;
