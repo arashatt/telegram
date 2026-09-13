@@ -52,7 +52,7 @@ import {
 /* Bumped whenever something ships that is hard to confirm from the outside.
    /api/health echoes it, so "is the deploy actually live?" is one request
    rather than an inference from symptoms. */
-const BUILD = "2026-09-13-brief-backlog-visible";
+const BUILD = "2026-09-13-redirect-checks";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
@@ -370,6 +370,43 @@ async function handleHealth(request, env) {
       `${briefs.undelivered} brief${briefs.undelivered === 1 ? " is" : "s are"} stored but not ` +
         "delivered. Check /api/health/telegram for the reason, fix it, then POST /api/app/briefs/retry."
     );
+  }
+
+  /* The Worker always sends a redirect_uri, so "redirect_uri required" from
+     Telegram means the value it sent was empty or unusable — which only
+     happens when TELEGRAM_REDIRECT_URI is set to something that is not an
+     absolute URL. Checked here because the override exists precisely for
+     deployments where the request origin cannot be trusted, and a typo in it
+     is otherwise invisible. */
+  const override = env.TELEGRAM_REDIRECT_URI;
+  if (override !== undefined && override !== null && String(override).trim() !== String(override)) {
+    warnings.push("TELEGRAM_REDIRECT_URI has leading or trailing whitespace");
+  }
+  if (override && String(override).trim()) {
+    let parsed;
+    try {
+      parsed = new URL(String(override).trim());
+    } catch {
+      /* Left undefined: the branch below treats unparseable and unusable the
+         same way, because Telegram does. */
+    }
+    if (!parsed || !/^https?:$/.test(parsed.protocol)) {
+      warnings.push(
+        "TELEGRAM_REDIRECT_URI is not an absolute URL. It must be the full " +
+          "https://host/api/auth/telegram/callback, not a domain or a path — Telegram reports " +
+          'anything it cannot use as "redirect_uri required".'
+      );
+    } else if (!parsed.pathname.endsWith("/api/auth/telegram/callback")) {
+      warnings.push(
+        "TELEGRAM_REDIRECT_URI does not end in /api/auth/telegram/callback, which is the only " +
+          "path this Worker answers the sign-in on."
+      );
+    } else if (parsed.origin !== new URL(request.url).origin) {
+      warnings.push(
+        `TELEGRAM_REDIRECT_URI points at ${parsed.origin} but this Worker is serving ` +
+          `${new URL(request.url).origin}. Unset it unless a proxy makes the request origin wrong.`
+      );
+    }
   }
 
   const token = env.TELEGRAM_BOT_TOKEN;
