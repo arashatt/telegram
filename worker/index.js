@@ -17,7 +17,13 @@ import {
 } from "./auth.js";
 import { claudeModel, extract as claudeExtract, hasClaude, streamChat } from "./claude.js";
 import { handleApp, isAppRoute } from "./app.js";
-import { hasDb, markBriefDelivered, markBriefFailed, storeBrief } from "./db.js";
+import {
+  briefCounts,
+  hasDb,
+  markBriefDelivered,
+  markBriefFailed,
+  storeBrief,
+} from "./db.js";
 import { ensureSchema } from "./schema.js";
 import { CORS, json, readBody } from "./http.js";
 import { clientKey, overLimit } from "./ratelimit.js";
@@ -46,7 +52,7 @@ import {
 /* Bumped whenever something ships that is hard to confirm from the outside.
    /api/health echoes it, so "is the deploy actually live?" is one request
    rather than an inference from symptoms. */
-const BUILD = "2026-09-13-oidc-ids";
+const BUILD = "2026-09-13-brief-backlog-visible";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
@@ -293,7 +299,7 @@ async function noteDelivery(env, recorded, reference, delivered, results) {
    Booleans only — never a value, a length, or a prefix. Knowing that delivery
    is configured tells an attacker nothing they could not learn by submitting
    the form. */
-function handleHealth(request, env) {
+async function handleHealth(request, env) {
   /* Reported one variable at a time. Delivery needs TELEGRAM_BOT_TOKEN and
      TELEGRAM_CHAT_ID together, and a single combined boolean cannot say which
      of the two is absent — which is exactly the question when it reads false. */
@@ -335,6 +341,25 @@ function handleHealth(request, env) {
         "If you registered your own Telegram app, set it to that app's id."
     );
   }
+  /* The number that says "delivery is broken" without anyone reading a log.
+     Briefs are kept when Telegram refuses them, which means a broken bot is
+     now silent from the visitor's side — this is where that silence becomes
+     audible. Wrapped because a database hiccup must not take health down with
+     it, and because the table does not exist until the first submission after
+     the migration. */
+  let briefs;
+  try {
+    if (hasDb(env)) briefs = await briefCounts(env.DB);
+  } catch (err) {
+    console.error("Could not count stored briefs:", err.message);
+  }
+  if (briefs?.undelivered > 0) {
+    warnings.push(
+      `${briefs.undelivered} brief${briefs.undelivered === 1 ? " is" : "s are"} stored but not ` +
+        "delivered. Check /api/health/telegram for the reason, fix it, then POST /api/app/briefs/retry."
+    );
+  }
+
   const token = env.TELEGRAM_BOT_TOKEN;
   if (token && !/^\d+:[A-Za-z0-9_-]{20,}$/.test(String(token).trim())) {
     warnings.push("TELEGRAM_BOT_TOKEN does not look like a BotFather token (123456789:AA...)");
@@ -354,6 +379,9 @@ function handleHealth(request, env) {
       clientId: clientId(env),
       origin: new URL(request.url).origin,
       checks,
+      // Present only when a database is bound. `undelivered` above zero is the
+      // one number here that means somebody's enquiry is sitting unread.
+      briefs,
       missing,
       warnings: warnings.length ? warnings : undefined,
       hint: missing.length
