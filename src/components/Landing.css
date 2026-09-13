@@ -97,8 +97,12 @@
   animation-delay: 0.36s;
 }
 
+/* The glyph's own centre, in its own 24-unit box — the group above places it,
+   so this only ever has to describe the motion. The old origin was a point in
+   the outer coordinate system, which stopped meaning anything once the
+   placement moved to a parent. */
 .botmark__plane {
-  transform-origin: 210px 108px;
+  transform-origin: 12px 12px;
   animation: tgn-plane 6.6s cubic-bezier(0.4, 0, 0.5, 1) infinite;
 }
 
@@ -112,6 +116,10 @@
   }
 }
 
+/* Distances are in the glyph's own units, which the placing group scales by
+   1.4–1.5 — so the travel is about 50 units right and 58 up in viewBox terms,
+   and the whole flight stays inside the 320-unit canvas. It has to: the plane
+   fades out rather than leaving frame, and an SVG clips at its own edge. */
 @keyframes tgn-plane {
   0%,
   52% {
@@ -120,12 +128,12 @@
   }
   60% {
     opacity: 1;
-    transform: translate(12px, -12px) scale(1);
+    transform: translate(8px, -9px) scale(1);
   }
   88%,
   100% {
     opacity: 0;
-    transform: translate(78px, -68px) scale(0.9);
+    transform: translate(34px, -40px) scale(0.9);
   }
 }
 

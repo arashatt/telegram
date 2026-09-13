@@ -47,25 +47,38 @@ export default function BotMark() {
           <circle className="botmark__dot" cx="160" cy={instagram ? 160 : 148} r="11" fill="var(--tg-blue)" />
           <circle className="botmark__dot" cx="193" cy={instagram ? 160 : 148} r="11" fill="var(--tg-blue)" />
         </g>
+        {/* Two nested groups, and the nesting is the point. A CSS `transform`
+            *replaces* an SVG transform attribute rather than composing with
+            it, so putting the animation on the same element that carries
+            translate()/scale() throws that placement away the moment the
+            keyframes apply — which sent the plane out through the top of the
+            viewBox, where the SVG's own overflow clipped it mid-flight.
+
+            The outer group places it and is never animated; the inner one
+            carries the motion and nothing else. */}
         {instagram ? (
-          <g className="botmark__plane" transform="translate(200,90) scale(1.4)">
-            <g
-              fill="none"
-              stroke="var(--tg-blue)"
-              strokeWidth="2.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 20V5" />
-              <path d="m5.6 11.4 6.4-6.4 6.4 6.4" />
+          <g transform="translate(200,90) scale(1.4)">
+            <g className="botmark__plane">
+              <g
+                fill="none"
+                stroke="var(--tg-blue)"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 20V5" />
+                <path d="m5.6 11.4 6.4-6.4 6.4 6.4" />
+              </g>
             </g>
           </g>
         ) : (
-          <g className="botmark__plane" transform="translate(196,94) scale(1.5)">
-            <path
-              d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"
-              fill="var(--tg-blue)"
-            />
+          <g transform="translate(196,94) scale(1.5)">
+            <g className="botmark__plane">
+              <path
+                d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"
+                fill="var(--tg-blue)"
+              />
+            </g>
           </g>
         )}
       </svg>
