@@ -714,6 +714,96 @@ The Instagram side itself. Talking to Meta's Graph API needs a Meta app, app
 review and page tokens, and none of that is in this repository. What is here is
 the seam it writes through, and the dashboard on the other side of it.
 
+## Customers, invoices and getting paid
+
+A brief on its own is an anonymous row. A **customer** is the identity those
+rows hang on, which is what makes "what has this person ordered before?" a
+question with an answer.
+
+Every submitted brief is attached to one, resolved in four steps: the OIDC
+subject when they were signed in, then the email they typed, then the Telegram
+handle, and otherwise a customer who did not exist until now. A later sign-in
+**claims** the anonymous rows that match, so somebody who briefed once without
+signing in and once with is one customer with two briefs, not two customers
+with one each.
+
+Three screens follow from that:
+
+| Screen | Who | What |
+| --- | --- | --- |
+| `/app` → **Customers** | the studio | every customer, what they have asked for, what they have paid, and the form that raises an invoice |
+| `/account` | a customer | their own briefs and invoices, and a link to pay an open one |
+| `/pay?t=…` | anybody sent a link | one invoice, and the buttons to pay it |
+
+`/account` is its own page rather than a mode of `/app` on purpose: a customer
+who opens the shop dashboard and is told "No shop yet" has been shown somebody
+else's product and then refused entry to it.
+
+### The payment link is the whole authorisation
+
+`/pay` needs no sign-in. The 32 random bytes in `?t=` are the capability, and
+the API answers them with the bill and nothing else — no customer, no other
+invoice, no email. A link forwarded to the wrong person leaks the price of one
+piece of work, which is the most a payment link can be allowed to cost. The
+token is stored, never listed, never logged, and never returned to anybody but
+the studio that raised the invoice and the customer it is for.
+
+`/pay` is also the one page the service worker refuses to cache. A stored copy
+of somebody's invoice could tell them it is unpaid after they have paid it;
+being offline in front of a payment page is better than being confidently wrong
+in front of one.
+
+### Three gateways behind one interface
+
+Which gateways a payer is offered follows the invoice's **currency**, not the
+language of their browser: Zarinpal and Zibal settle Rial and nothing else, and
+Stripe does not settle Rial at all. The language decides which currency the
+studio is offered when raising the invoice, which is where the choice actually
+belongs — and it is why the English site never mentions the Iranian gateways.
+A gateway whose keys are unset is invisible rather than broken.
+
+A redirect is never evidence. An invoice moves to `paid` when Stripe's signed
+webhook says so, or when Zarinpal or Zibal confirm it on a verify call the
+Worker makes itself. The `success_url` a payer comes back on is a URL anybody
+can visit, and the page it lands on re-reads the real status from the API.
+
+The `payments` table records every *attempt*, not just the successes, with a
+unique index on `(gateway, gateway_ref)`. That index is what makes a replayed
+webhook or a double-tapped callback settle an invoice once rather than twice.
+
+An unreachable gateway — or one answering 500 — leaves the attempt open rather
+than marking it failed. It tells us nothing about whether the money moved, and
+writing it off would make an invoice that was actually paid unpayable.
+
+### Rial and Toman
+
+The trap in every Iranian integration, pinned at both ends rather than
+converted somewhere in the middle:
+
+- The database stores ISO 4217. IRR has no minor unit, so an IRR invoice's
+  `amount_cents` is a whole number of **Rial**.
+- Zibal takes Rial and only Rial. Zarinpal takes either and which one is a
+  setting in the merchant's panel — so it is sent `currency: "IRR"` on every
+  request rather than left to a default that could silently divide by ten.
+- **Toman exists only on screen**, where Persian readers expect it, and the
+  payment page says what the bank will actually take alongside it.
+
+`worker/gateways/rial.js` carries the argument; nothing else multiplies or
+divides.
+
+### Turning it on
+
+Set whichever of `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET`,
+`ZARINPAL_MERCHANT_ID` and `ZIBAL_MERCHANT` you have, as **Secret**, in the
+same place as everything else. `/api/health` reports each as
+`absent` / `empty` / `set`, and `checks.payments` says whether any gateway can
+take money at all. Register the Stripe webhook at
+`https://<your-domain>/api/webhooks/stripe` for `checkout.session.completed`.
+
+The first real payment through each gateway is yours to make: this repository's
+tests run all three against mocked upstreams, because the container they run in
+cannot reach any of them.
+
 ## SEO
 
 Critical CSS is inlined in `<head>` and the webfont stylesheet is loaded
@@ -771,6 +861,15 @@ the home page.
 | `POST /api/app/members[/remove]` | `?shop` | membership |
 | `POST /api/app/demo` | `?shop` | sample data into an empty shop |
 | `POST /api/app/ingest` | `Bearer` + `{ orders, events }` | what was written |
+| `GET /api/app/customers` | `?q&before&limit` | every customer, with totals — studio only |
+| `GET /api/app/customers/:id` | — | one customer, their briefs and invoices |
+| `GET/POST /api/app/invoices` | `?status&before` | list; raise one against a brief |
+| `GET/POST /api/app/invoices/:reference` | `{ status? … }` | one invoice, its link and its payments |
+| `GET /api/app/mine` | — | the signed-in customer's own rows, and nothing else |
+| `GET /api/pay` | `?t=<token>` | one invoice: amount, what for, status, gateways |
+| `POST /api/pay/start` | `{ token, gateway }` | `{ redirectUrl }` |
+| `GET /api/pay/return/:gateway` | gateway's own query | verifies, then `303` back to `/pay` |
+| `POST /api/webhooks/stripe` | signed event | `{ ok, settled }` |
 
 Untrusted input is treated as such: bodies are capped at 64 KB, every field
 is coerced onto the schema before use (so neither a crafted request nor a

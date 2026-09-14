@@ -117,7 +117,8 @@
   inset-block-end: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Four for a shop, five once the studio's Customers tab is there. */
+  grid-template-columns: repeat(var(--tab-count, 4), 1fr);
   background: color-mix(in srgb, var(--surface) 96%, transparent);
   backdrop-filter: blur(10px);
   border-block-start: 1px solid var(--line);
@@ -267,7 +268,8 @@
 }
 
 .dash__field input,
-.dash__field select {
+.dash__field select,
+.dash__field textarea {
   width: 100%;
   padding: 11px 13px;
   border: 1px solid var(--line);
@@ -276,6 +278,11 @@
   color: var(--ink);
   font-family: var(--font-display);
   font-size: 15px;
+}
+
+.dash__field textarea {
+  resize: vertical;
+  min-height: 66px;
 }
 
 .dash__field input:disabled,
@@ -854,7 +861,7 @@
     position: static;
     max-width: var(--shell);
     margin: 0 auto;
-    grid-template-columns: repeat(4, max-content);
+    grid-template-columns: repeat(var(--tab-count, 4), max-content);
     gap: 4px;
     /* On the page ground under the toolbar, so there is no second hairline
        directly below the bar's own. */
@@ -903,4 +910,267 @@
   .dash__pair {
     grid-template-columns: 1fr;
   }
+}
+
+
+/* ---- customers, invoices and getting paid ---- */
+
+/* Said once, used wherever a label is for a screen reader and the placeholder
+   carries it visually. */
+.dash__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.dash__note--warn {
+  color: var(--danger);
+}
+
+.cust {
+  display: grid;
+  gap: 14px;
+}
+
+/* Only on screen when something is wrong, which is why it may use the danger
+   colour as a ground: it is not a status among others, it is the one thing to
+   deal with before anything else on this screen. */
+.cust__alarm {
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  border-radius: var(--r-card);
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.cust__alarm h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.cust__alarm p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.cust__search input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-input);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.cust__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+/* One row, five facts. On a phone they stack into two lines with the money on
+   its own; from 700px up they are columns, because at that width a list of
+   customers is read down one column at a time. */
+.cust__row {
+  width: 100%;
+  text-align: start;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-display);
+  cursor: pointer;
+}
+
+.cust__row:hover {
+  border-color: color-mix(in srgb, var(--tg-blue) 45%, var(--line));
+}
+
+.cust__who {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cust__contact,
+.cust__tally,
+.cust__when {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.cust__contact {
+  grid-column: 1;
+  overflow-wrap: anywhere;
+}
+
+.cust__tally {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Money owed is the number somebody came to this screen for. */
+.cust__awaiting {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.cust__paid {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--positive-ink);
+}
+
+/* Nobody has paid anything yet, so there is no amount here to colour. A green
+   dash reads as a number that happens to be small. */
+.cust__paid[data-empty] {
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+.cust__when {
+  grid-column: 2;
+  justify-self: end;
+}
+
+@media (min-width: 700px) {
+  .cust__row {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1fr) auto auto;
+    gap: 14px;
+  }
+
+  .cust__who,
+  .cust__contact,
+  .cust__tally,
+  .cust__paid,
+  .cust__when {
+    grid-column: auto;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  .cust__paid,
+  .cust__when {
+    justify-self: end;
+  }
+}
+
+/* Four states, never carried by colour alone — the word is always in the
+   pill, exactly as the order statuses do it. */
+.cust__status {
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
+  color: var(--ink-muted);
+}
+
+.cust__status[data-status="sent"] {
+  background: color-mix(in srgb, var(--tg-blue) 16%, transparent);
+  color: var(--tg-blue-ink);
+}
+
+.cust__status[data-status="paid"] {
+  background: color-mix(in srgb, var(--positive) 18%, transparent);
+  color: var(--positive-ink);
+}
+
+.cust__status[data-status="void"] {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  color: var(--danger);
+}
+
+.cust__briefs,
+.cust__invoices,
+.cust__payments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.cust__briefs li {
+  display: grid;
+  gap: 3px;
+  font-size: 14px;
+  padding-block-end: 8px;
+  border-block-end: 1px solid var(--line);
+}
+
+.cust__briefmeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.cust__invoice {
+  width: 100%;
+  text-align: start;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-input);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.cust__invoicebody {
+  display: grid;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-block-start: none;
+  border-end-start-radius: var(--r-input);
+  border-end-end-radius: var(--r-input);
+  background: var(--bubble-in);
+}
+
+.cust__payments li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.cust__money {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: start;
 }

@@ -68,6 +68,42 @@ TELEGRAM_CLIENT_SECRET=your-oidc-client-secret
 # The database itself is not a variable: it is a binding, and it lives in
 # wrangler.jsonc — see the commented d1_databases block there, and the README.
 
+# --- Customers, invoices and getting paid ----------------------------------
+# All optional. With none of these set, invoices can still be raised and read;
+# there is simply no gateway to pay them through, and the payment page says so
+# in words rather than showing a button that does nothing.
+#
+# Stripe. Both are needed or the gateway is not offered at all: without the
+# webhook secret a payment could be started and never confirmed, which is worse
+# than no button — the money leaves the payer and the invoice stays open.
+# The webhook endpoint to register with Stripe is
+#   https://<your-domain>/api/webhooks/stripe
+# subscribed to checkout.session.completed (and the async_payment_* events if
+# you accept bank debits).
+# STRIPE_SECRET_KEY=sk_live_or_test_...
+# STRIPE_WEBHOOK_SECRET=whsec_...
+#
+# Zarinpal. The merchant id from your panel, a 36-character UUID.
+# ZARINPAL_MERCHANT_ID=00000000-0000-0000-0000-000000000000
+#
+# Zibal. The merchant code from your panel.
+# ZIBAL_MERCHANT=zibal
+#
+# AMOUNTS ARE IN RIAL, NOT TOMAN. IRR has no minor unit, so an IRR invoice's
+# amount is a whole number of Rial and that is exactly what both Iranian
+# gateways are sent. Persian screens divide by ten to *show* Toman, which is
+# what a customer reads a price in, and nothing else converts anywhere. The
+# whole argument is in worker/gateways/rial.js.
+#
+# Which currency a Persian invoice starts in. Defaults to IRR; set it only if
+# the studio invoices Persian customers in something else.
+# PAYMENTS_CURRENCY_FA=IRR
+#
+# The public origin a gateway sends a payer back to. Derived from the request
+# by default; set it only when a proxy makes the request origin wrong — the
+# same reason TELEGRAM_REDIRECT_URI exists.
+# SITE_ORIGIN=https://example.com
+
 # Nothing extra is needed for the Instagram site at /instagram: it shares this
 # Worker, these secrets and this delivery chat. Each brief's heading says which
 # site it came from.

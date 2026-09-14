@@ -6,10 +6,12 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), cloudflare()],
-  /* Three pages, three HTML entries. The Instagram site needs its own <title>,
-     description and robots rule, which a shared index.html cannot give it, and
-     the dashboard at /app is a different application that happens to share the
-     tokens and the sign-in.
+  /* Five pages, five HTML entries. The Instagram site needs its own <title>,
+     description and robots rule, which a shared index.html cannot give it; the
+     dashboard at /app is a different application that happens to share the
+     tokens and the sign-in; and the two customer-facing pages are noindex with
+     their own copy — /pay additionally carries a no-referrer rule, because the
+     token in its URL must not follow a link out.
 
      Scoped to the client environment on purpose: the Cloudflare plugin builds
      the Worker as a second environment, and a top-level `build.rollupOptions`
@@ -22,6 +24,8 @@ export default defineConfig({
             main: 'index.html',
             instagram: 'instagram.html',
             app: 'app.html',
+            account: 'account.html',
+            pay: 'pay.html',
           },
         },
       },

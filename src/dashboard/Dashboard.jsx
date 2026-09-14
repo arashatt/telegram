@@ -9,6 +9,7 @@ import Orders from "./Orders.jsx";
 import Catalog from "./Catalog.jsx";
 import Report from "./Report.jsx";
 import Settings from "./Settings.jsx";
+import Customers from "./Customers.jsx";
 import "./dashboard.css";
 
 /* The shop owner's dashboard: the thing /instagram promises is behind the
@@ -23,7 +24,9 @@ import "./dashboard.css";
    No router. Four panels and a tab bar is the whole navigation, and a fresh
    load starting on Orders is the right default every time. */
 
-const TABS = [
+/* A shop's tabs. Customers is not among them: it belongs to the studio, not
+   to a shop, and appears for an admin whether or not they are on one. */
+const SHOP_TABS = [
   ["orders", "tabOrders"],
   ["catalog", "tabCatalog"],
   ["report", "tabReport"],
@@ -44,6 +47,8 @@ function TabIcon({ name }) {
     catalog: "M4 6h16v12H4zM4 10h16M9 6v12",
     report: "M5 19V9M12 19V5M19 19v-7",
     settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM4 12h2M18 12h2M12 4v2M12 18v2",
+    customers: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM3 20a6 6 0 0 1 12 0M17 8.5a2.5 2.5 0 1 0 0-5M18 20h3a5 5 0 0 0-3-4.6",
+    setup: "M12 3v4M12 17v4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M3 12h4M17 12h4M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8",
   };
   return (
     <svg
@@ -65,7 +70,7 @@ function TabIcon({ name }) {
 export default function Dashboard() {
   const [lang, setLang] = useState(initialLang);
   const [theme, setTheme] = useState(initialTheme);
-  const [tab, setTab] = useState("orders");
+  const [tab, setTab] = useState(null);
   const [state, setState] = useState({ status: "loading" });
 
   const session = useTelegramSession();
@@ -107,6 +112,24 @@ export default function Dashboard() {
   /* The chosen shop, or the only one there is. Derived rather than stored, so
      it cannot go stale when a membership is removed while the tab is open. */
   const shop = shops.find((s) => s.shopId === shopId) ?? shops[0] ?? null;
+
+  /* What this person may look at, in the order they need it.
+
+     A shop member gets the shop's four. A studio account gets Customers as
+     well — it belongs to the studio rather than to a shop, so it is there
+     whether or not they are on one. And a studio account on no shop yet gets
+     Setup *first*: on a fresh deployment there are no customers to look at and
+     creating a shop is the only useful thing to do, so landing on an empty
+     list would be a worse first screen than the one that was there before. */
+  const tabs = shop
+    ? [...SHOP_TABS, ...(state.admin ? [["customers", "tabCustomers"]] : [])]
+    : state.admin
+      ? [
+          ["setup", "tabSetup"],
+          ["customers", "tabCustomers"],
+        ]
+      : [];
+  const current = tabs.some(([id]) => id === tab) ? tab : (tabs[0]?.[0] ?? null);
 
   const context = useMemo(() => ({ t, lang }), [t, lang]);
 
@@ -175,8 +198,8 @@ export default function Dashboard() {
         <p className="dash__note">{t("dbMissingId")}</p>
       </div>
     );
-  } else if (!shop) {
-    body = <NoShop t={t} user={state.user} admin={state.admin} onCreated={reload} />;
+  } else if (!shop && !state.admin) {
+    body = <NoShop t={t} user={state.user} admin={false} onCreated={reload} />;
   }
 
   return (
@@ -223,14 +246,18 @@ export default function Dashboard() {
               position: fixed descendant — which pinned the bottom tab bar to
               the bottom of the *header* instead of the viewport, laying it
               across the controls. */}
-          {shop && (
-            <nav className="dash__tabs" aria-label={t("title")}>
-              {TABS.map(([id, key]) => (
+          {!body && tabs.length > 1 && (
+            <nav
+              className="dash__tabs"
+              aria-label={t("title")}
+              style={{ "--tab-count": tabs.length }}
+            >
+              {tabs.map(([id, key]) => (
                 <button
                   key={id}
                   type="button"
                   className="dash__tab"
-                  aria-current={tab === id ? "page" : undefined}
+                  aria-current={current === id ? "page" : undefined}
                   onClick={() => setTab(id)}
                 >
                   <TabIcon name={id} />
@@ -242,13 +269,17 @@ export default function Dashboard() {
 
           <main className="dash__main">
             {body}
-            {shop && !body && (
+            {!body && (
               <>
-                {tab === "orders" && <Orders shop={shop} />}
-                {tab === "catalog" && <Catalog shop={shop} />}
-                {tab === "report" && <Report shop={shop} />}
-                {tab === "settings" && (
+                {shop && current === "orders" && <Orders shop={shop} />}
+                {shop && current === "catalog" && <Catalog shop={shop} />}
+                {shop && current === "report" && <Report shop={shop} />}
+                {shop && current === "settings" && (
                   <Settings shop={shop} user={state.user} onChanged={reload} />
+                )}
+                {current === "customers" && <Customers />}
+                {current === "setup" && (
+                  <NoShop t={t} user={state.user} admin onCreated={reload} />
                 )}
               </>
             )}

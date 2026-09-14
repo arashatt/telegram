@@ -136,6 +136,61 @@ export const DASHBOARD_COPY = {
     errNegative: "Cannot be negative",
     errHasOrders: "This has been sold, so it is kept. Hide it instead.",
     errShopNotEmpty: "This shop already has orders.",
+    /* ---- customers, invoices and getting paid ---- */
+    tabCustomers: "Customers",
+    tabSetup: "Setup",
+
+    customersSearch: "Search by name, email or @handle",
+    customersEmpty: "No customers yet",
+    customersEmptyBody:
+      "Every brief submitted on the site becomes a customer here, matched by the email or Telegram handle it was sent with.",
+    custSignedIn: "Signed in",
+    custBriefsN: "{n} briefs",
+    custBrief1: "1 brief",
+    custInvoicesN: "{n} invoices",
+    custInvoice1: "1 invoice",
+    custAwaiting: "{n} awaiting payment",
+    custPaidNothing: "Nothing paid yet",
+    custNoContact: "No contact details",
+
+    backlogTitle: "{n} briefs are stored but undelivered",
+    backlogBody:
+      "They are safe. Telegram refused them, so nothing was lost — fix the bot token and send them again.",
+    backlogRetry: "Send them now",
+    backlogSending: "Sending…",
+    backlogResult: "{sent} sent, {failed} still failing.",
+
+    custBriefs: "Briefs",
+    custInvoices: "Invoices",
+    custNoBriefs: "No briefs from this customer.",
+    custNoInvoices: "Nothing invoiced yet.",
+    custDelivered: "Delivered",
+    custUndelivered: "Not delivered",
+
+    invoiceNew: "Raise an invoice",
+    invoiceFor: "What it is for",
+    invoiceDetail: "Detail (optional)",
+    invoiceAmount: "Amount",
+    invoiceCurrency: "Currency",
+    invoiceAgainst: "Against a brief",
+    invoiceAgainstNone: "Not tied to a brief",
+    invoiceSendNow: "Send it straight away",
+    invoiceRaise: "Raise it",
+    invoiceRaising: "Raising…",
+    invoiceLink: "Payment link",
+    invoiceLinkNote: "Anyone with this link can pay this invoice. Send it to the customer and nobody else.",
+    invoiceMarkSent: "Mark as sent",
+    invoiceVoid: "Cancel it",
+    invoicePaidNote: "Paid invoices cannot be edited.",
+    invoiceNoGateway:
+      "No payment gateway is configured for this currency, so the link will have nothing to offer.",
+    invoiceRial:
+      "Amounts in IRR are Rial. The payer sees Toman, which is a tenth of it.",
+
+    payStarted: "Started",
+    payPaid: "Paid",
+    payFailed: "Failed",
+
     retry: "Try again",
     loading: "Loading…",
   },
@@ -257,6 +312,61 @@ export const DASHBOARD_COPY = {
     errNegative: "نمی‌تواند منفی باشد",
     errHasOrders: "این محصول فروخته شده و نگه داشته می‌شود. به‌جایش پنهانش کنید.",
     errShopNotEmpty: "این فروشگاه از قبل سفارش دارد.",
+    /* ---- مشتری‌ها، صورت‌حساب و پرداخت ---- */
+    tabCustomers: "مشتری‌ها",
+    tabSetup: "راه‌اندازی",
+
+    customersSearch: "جست‌وجو با نام، ایمیل یا آی‌دی",
+    customersEmpty: "هنوز مشتری‌ای نیست",
+    customersEmptyBody:
+      "هر درخواستی که در سایت ثبت شود اینجا به یک مشتری تبدیل می‌شود؛ با ایمیل یا آی‌دی تلگرامی که با آن فرستاده شده شناخته می‌شود.",
+    custSignedIn: "وارد شده",
+    custBriefsN: "{n} درخواست",
+    custBrief1: "۱ درخواست",
+    custInvoicesN: "{n} صورت‌حساب",
+    custInvoice1: "۱ صورت‌حساب",
+    custAwaiting: "{n} در انتظار پرداخت",
+    custPaidNothing: "هنوز پرداختی نداشته",
+    custNoContact: "راه تماسی ثبت نشده",
+
+    backlogTitle: "{n} درخواست ذخیره شده ولی فرستاده نشده",
+    backlogBody:
+      "چیزی از دست نرفته. تلگرام آن‌ها را نپذیرفت — توکن ربات را درست کنید و دوباره بفرستید.",
+    backlogRetry: "همین حالا بفرست",
+    backlogSending: "در حال ارسال…",
+    backlogResult: "{sent} فرستاده شد، {failed} هنوز ناموفق.",
+
+    custBriefs: "درخواست‌ها",
+    custInvoices: "صورت‌حساب‌ها",
+    custNoBriefs: "از این مشتری درخواستی ثبت نشده.",
+    custNoInvoices: "هنوز صورت‌حسابی صادر نشده.",
+    custDelivered: "فرستاده شد",
+    custUndelivered: "فرستاده نشد",
+
+    invoiceNew: "صدور صورت‌حساب",
+    invoiceFor: "بابت چه چیزی",
+    invoiceDetail: "توضیح (اختیاری)",
+    invoiceAmount: "مبلغ",
+    invoiceCurrency: "واحد پول",
+    invoiceAgainst: "برای کدام درخواست",
+    invoiceAgainstNone: "بدون درخواست مشخص",
+    invoiceSendNow: "همین حالا برایش بفرست",
+    invoiceRaise: "صدور",
+    invoiceRaising: "در حال صدور…",
+    invoiceLink: "لینک پرداخت",
+    invoiceLinkNote: "هر کسی این لینک را داشته باشد می‌تواند این صورت‌حساب را بپردازد. فقط برای همان مشتری بفرستید.",
+    invoiceMarkSent: "علامت‌گذاری به‌عنوان فرستاده‌شده",
+    invoiceVoid: "لغو",
+    invoicePaidNote: "صورت‌حساب پرداخت‌شده ویرایش نمی‌شود.",
+    invoiceNoGateway:
+      "برای این واحد پول درگاهی تنظیم نشده، پس لینک پرداخت چیزی برای عرضه ندارد.",
+    invoiceRial:
+      "مبلغ به ریال وارد می‌شود. آنچه مشتری می‌بیند تومان است، یک‌دهم این عدد.",
+
+    payStarted: "آغاز شد",
+    payPaid: "پرداخت شد",
+    payFailed: "ناموفق",
+
     retry: "تلاش دوباره",
     loading: "در حال بارگذاری…",
   },

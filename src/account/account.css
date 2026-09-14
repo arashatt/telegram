@@ -1,0 +1,181 @@
+/* The two customer-facing screens, /account and /pay.
+
+   They borrow the dashboard's shell — the bar, the cards, the status pills —
+   because a customer opening a page from us should recognise it as the same
+   site, and because none of that is worth writing twice. Only what is
+   different from the dashboard lives here. */
+
+.acct .dash__main {
+  display: grid;
+  gap: 22px;
+  align-content: start;
+}
+
+.acct h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.acct__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+/* What is owed, which is why somebody opened this page. Given the accent
+   border rather than a colour fill so the amount stays the loudest thing on
+   the row. */
+.acct__owedrow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--tg-blue) 45%, var(--line));
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.acct__owedrow:hover {
+  border-color: var(--tg-blue);
+}
+
+.acct__amount {
+  font-size: 17px;
+  font-weight: 700;
+  justify-self: end;
+}
+
+.acct__owedrow .pill {
+  grid-column: 2;
+  justify-self: end;
+}
+
+.acct__brief,
+.acct__invoice {
+  display: grid;
+  gap: 4px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.acct__invoice {
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.acct__briefname {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.acct__briefmeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* ---- /pay ----
+
+   One column, narrow on purpose: there is exactly one decision on this page
+   and nothing should compete with it. */
+
+.acct--pay .dash__main {
+  max-width: 520px;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.pay {
+  display: grid;
+  gap: 18px;
+}
+
+.pay__card {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.pay__label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.pay__title {
+  margin: 4px 0 0;
+  font-size: 20px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.pay__detail {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--ink-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The number the whole page exists for. */
+.pay__amount {
+  margin: 18px 0 0;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.pay__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.pay__meta code {
+  background: var(--bubble-in);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 12px;
+}
+
+.pay__methods {
+  display: grid;
+  gap: 10px;
+}
+
+.pay__method {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  .pay__card {
+    padding: 18px;
+  }
+
+  .pay__amount {
+    font-size: 29px;
+  }
+}

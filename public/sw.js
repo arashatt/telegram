@@ -23,7 +23,7 @@
    falls back to the system UI font.
 
    Bump VERSION to retire every cache from the previous release. */
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const KEEP = [SHELL, RUNTIME];
@@ -37,10 +37,12 @@ const SHELL_URLS = [
   "/",
   "/instagram",
   "/app",
+  "/account",
   OFFLINE,
   "/manifest.webmanifest",
   "/manifest-instagram.webmanifest",
   "/manifest-app.webmanifest",
+  "/manifest-account.webmanifest",
   "/favicon.svg",
   "/favicon-instagram.svg",
   "/favicon-app.svg",
@@ -49,17 +51,27 @@ const SHELL_URLS = [
   "/icons/app-192.png",
 ];
 
-/* Which shell answers a navigation. All three pages are single pages, and the
-   asset router already serves index.html for anything it does not recognise,
-   so every path resolves to one of them.
+/* Which shell answers a navigation. Each page is a single page and the asset
+   router already serves index.html for anything it does not recognise, so
+   every path resolves to one of them.
 
-   The dashboard's shell is the same HTML for everyone — it holds no data, and
-   everything it shows comes from /api/app/*, which is never cached. */
+   These shells are the same HTML for everyone — they hold no data, and
+   everything they show comes from /api/*, which is never cached. */
 function shellFor(pathname) {
   if (pathname === "/instagram" || pathname.startsWith("/instagram/")) return "/instagram";
   if (pathname === "/app" || pathname.startsWith("/app/")) return "/app";
+  if (pathname === "/account" || pathname.startsWith("/account/")) return "/account";
   return "/";
 }
+
+/* The one page that is never cached and never answered from a cache.
+
+   Every other document here is worth having offline. This one is not: a stored
+   copy of somebody's invoice could tell them it is unpaid after they have paid
+   it, or show a pay button on a bill already settled, and being offline in
+   front of a payment page is better than being confidently wrong in front of
+   one. It is left to the network entirely, on every request. */
+const isPaymentPage = (pathname) => pathname === "/pay" || pathname.startsWith("/pay/");
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -132,6 +144,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
+  if (isPaymentPage(url.pathname)) return;
 
   if (request.mode === "navigate") {
     event.respondWith(fromNetworkFirst(request));
