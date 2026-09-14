@@ -40,3 +40,15 @@ export async function readBody(request) {
     return { invalid: true };
   }
 }
+
+/* The body exactly as it arrived, because a signature is over bytes and not
+   over a reparsed object. JSON.parse followed by JSON.stringify is not the
+   same string, and a webhook verified against the round trip would reject
+   every genuine event. */
+export async function readRaw(request) {
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (declared > MAX_BODY_BYTES) return { tooLarge: true };
+  const raw = await request.text();
+  if (raw.length > MAX_BODY_BYTES) return { tooLarge: true };
+  return { raw };
+}

@@ -64,8 +64,10 @@ export async function settle(env, { invoice, query }) {
     body: JSON.stringify({ merchant: env.ZIBAL_MERCHANT, trackId: Number(trackId) }),
   });
 
-  /* As with Zarinpal: unreachable is not declined. */
-  if (res.error) return { status: "pending", gatewayRef: trackId, detail: res.detail ?? res.error };
+  /* As with Zarinpal: unreachable is not declined, and neither is a 500. */
+  if (res.error || !res.ok) {
+    return { status: "pending", gatewayRef: trackId, detail: res.detail ?? res.error ?? `http ${res.status}` };
+  }
 
   const data = res.data ?? {};
   const result = Number(data.result);

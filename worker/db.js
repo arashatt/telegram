@@ -21,6 +21,7 @@ import {
   text,
 } from "../shared/orderSchema.js";
 import { invoiceStatusId } from "../shared/invoiceSchema.js";
+import { ensureSchema } from "./schema.js";
 
 export const hasDb = (env) => Boolean(env?.DB?.prepare);
 
@@ -1077,14 +1078,31 @@ export async function briefsForCustomer(db, customerId) {
 
 /* ---- invoices ---- */
 
-const INVOICE_COLUMNS = `id, reference, customer_id AS customerId, brief_id AS briefId,
-                         title, description, amount_cents AS amountCents, currency, status,
-                         due_at AS dueAt, paid_at AS paidAt,
-                         created_at AS createdAt, updated_at AS updatedAt`;
+/* Takes an alias because one of these queries joins `payments`, which has an
+   `id`, a `currency`, a `status` and a `created_at` of its own — unqualified,
+   SQLite refuses the statement as ambiguous rather than guessing.
 
-export async function invoicesForCustomer(db, customerId) {
+   `token` is never in this list. It is the capability in a payment link and is
+   selected explicitly, in the two places that have a reason to. */
+const invoiceColumns = (alias = "") => {
+  const q = alias ? `${alias}.` : "";
+  return `${q}id, ${q}reference, ${q}customer_id AS customerId, ${q}brief_id AS briefId,
+          ${q}title, ${q}description, ${q}amount_cents AS amountCents, ${q}currency, ${q}status,
+          ${q}due_at AS dueAt, ${q}paid_at AS paidAt,
+          ${q}created_at AS createdAt, ${q}updated_at AS updatedAt`;
+};
+
+const INVOICE_COLUMNS = invoiceColumns();
+
+/* `withToken` is for one caller: the customer reading their *own* invoices at
+   /api/app/mine, who needs the link to pay them. Every other reader gets the
+   invoice without it. */
+export async function invoicesForCustomer(db, customerId, { withToken = false } = {}) {
   const { results } = await db
-    .prepare(`SELECT ${INVOICE_COLUMNS} FROM invoices WHERE customer_id = ? ORDER BY created_at DESC`)
+    .prepare(
+      `SELECT ${INVOICE_COLUMNS}${withToken ? ", token" : ""}
+         FROM invoices WHERE customer_id = ? ORDER BY created_at DESC`
+    )
     .bind(String(customerId))
     .all();
   return results ?? [];
@@ -1133,9 +1151,12 @@ export async function listInvoices(db, { status, limit = 30, before } = {}) {
   return { invoices: page, cursor: rows.length > size ? page[page.length - 1].createdAt : null };
 }
 
-export async function getInvoiceByReference(db, reference) {
+/* `withToken` for the studio reading an invoice it raised: it needs the link to
+   send to the customer, and the link is the token. Never set from a route that
+   answers anybody else. */
+export async function getInvoiceByReference(db, reference, { withToken = false } = {}) {
   return db
-    .prepare(`SELECT ${INVOICE_COLUMNS} FROM invoices WHERE reference = ?`)
+    .prepare(`SELECT ${INVOICE_COLUMNS}${withToken ? ", token" : ""} FROM invoices WHERE reference = ?`)
     .bind(text(reference, 32))
     .first();
 }
@@ -1219,17 +1240,27 @@ export async function updateInvoice(db, reference, patch) {
    a replayed webhook or a double-tapped callback settle an invoice once. */
 
 export async function startPaymentRecord(db, invoice, gateway, gatewayRef) {
+  const ref = text(gatewayRef, 120);
+  /* A payment with no reference from the gateway cannot be settled later and
+     must not be written: the unique index that makes settling idempotent skips
+     empty references, so a row like this would be a duplicate waiting to
+     happen rather than a payment. */
+  if (!ref) return { id: null, gatewayRef: "" };
+
   const id = newId("pay");
   await db
     .prepare(
       `INSERT INTO payments (id, invoice_id, gateway, gateway_ref, amount_cents, currency,
                              status, created_at)
        VALUES (?, ?, ?, ?, ?, ?, 'started', ?)
-       ON CONFLICT (gateway, gateway_ref) DO NOTHING`
+       /* The WHERE has to be repeated here. SQLite matches an ON CONFLICT
+          target against a *partial* index only when the predicate matches
+          too, and without it the statement is rejected outright. */
+       ON CONFLICT (gateway, gateway_ref) WHERE gateway_ref <> '' DO NOTHING`
     )
-    .bind(id, invoice.id, gateway, text(gatewayRef, 120), invoice.amountCents, invoice.currency, now())
+    .bind(id, invoice.id, gateway, ref, invoice.amountCents, invoice.currency, now())
     .run();
-  return { id, gatewayRef };
+  return { id, gatewayRef: ref };
 }
 
 /* Returns whether *this* call was the one that settled it. A replay gets
@@ -1304,4 +1335,59 @@ export async function backfillCustomers(db) {
   /* Only stop looking once a pass finds nothing: a page of 200 leaves the rest
      for the next request rather than running past the Worker's time limit. */
   if ((pending.results ?? []).length === 0) backfilled = true;
+}
+
+/* ---- one call the routes start from ----
+
+   Applying the schema and attaching orphaned briefs are two things that both
+   have to have happened before any customer query is meaningful, and both are
+   idempotent and self-limiting. Every route that touches customers calls this
+   rather than remembering the pair. */
+export async function ensureReady(db) {
+  await ensureSchema(db);
+  await backfillCustomers(db);
+}
+
+/* The invoice behind a gateway's callback, found by the reference the gateway
+   itself gave us when the payment was started. This is what makes a callback
+   trustworthy enough to verify: the payer's browser carries an authority or a
+   trackId, and only a row we wrote earlier can turn it into an invoice. */
+export async function invoiceForPaymentRef(db, gateway, gatewayRef) {
+  const ref = text(gatewayRef, 120);
+  if (!ref) return null;
+  /* The one query that selects the token, because the payer coming back from
+     their bank has lost it — it was in the page they left — and the only way
+     to put them back in front of their own invoice is to carry it into the
+     redirect. It goes to the browser that already had it, over https, and
+     nowhere else. */
+  return db
+    .prepare(
+      `SELECT ${invoiceColumns("i")}, i.token FROM invoices i
+         JOIN payments p ON p.invoice_id = i.id
+        WHERE p.gateway = ? AND p.gateway_ref = ?`
+    )
+    .bind(String(gateway), ref)
+    .first();
+}
+
+export async function briefByReference(db, reference) {
+  return db
+    .prepare(
+      `SELECT id, reference, customer_id AS customerId, platform, lang,
+              bot_name AS botName, summary, created_at AS createdAt
+         FROM briefs WHERE reference = ?`
+    )
+    .bind(text(reference, 32))
+    .first();
+}
+
+/* Called once per submission, right after the brief is stored: the row exists,
+   and this is what turns it from an anonymous enquiry into one person's. */
+export async function linkBriefCustomer(db, reference, submission) {
+  const customer = await resolveCustomer(db, submission);
+  await db
+    .prepare(`UPDATE briefs SET customer_id = ? WHERE reference = ? AND customer_id IS NULL`)
+    .bind(customer.id, String(reference))
+    .run();
+  return customer;
 }

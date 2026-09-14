@@ -27,12 +27,19 @@ export const configuredGateways = (env) =>
 export const gatewaysFor = (env, lang) =>
   gatewaysForLang(lang).filter((id) => MODULES[id].configured(env));
 
-/* Whether a gateway can take *this* invoice, which is not the same question as
-   whether it is configured: the Iranian gateways settle Rial and nothing else,
-   so a USD invoice must not offer them however well their keys are set. */
-export function gatewaysForInvoice(env, invoice, lang) {
-  const iranian = String(invoice?.currency ?? "").toUpperCase() === "IRR";
-  return gatewaysFor(env, lang).filter((id) => (id === "stripe" ? !iranian : iranian));
+/* Which gateways can take *this* invoice. Currency decides, not language: the
+   Iranian gateways settle Rial and nothing else, and Stripe does not settle
+   Rial at all, so the invoice's own currency answers the question completely.
+
+   The language rule lives in `gatewaysFor` above and applies where somebody is
+   choosing — the studio raising an invoice sees the gateways that suit the
+   customer's language, and the English site never mentions the Iranian ones
+   because its invoices are not in Rial. By the time a payer has a link, the
+   choice is made and narrowing it again by the language of their browser could
+   only strand them. */
+export function gatewaysForInvoice(env, invoice) {
+  const rial = String(invoice?.currency ?? "").toUpperCase() === "IRR";
+  return configuredGateways(env).filter((id) => (id === "stripe" ? !rial : rial));
 }
 
 export async function startPayment(env, { gateway, invoice, urls }) {

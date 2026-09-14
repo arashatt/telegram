@@ -77,10 +77,13 @@ export async function settle(env, { invoice, query }) {
     body: JSON.stringify({ merchant_id: env.ZARINPAL_MERCHANT_ID, amount, authority }),
   });
 
-  /* An unreachable Zarinpal is not a failed payment — the money may well have
-     moved. Left unsettled so a later retry of the same authority can still
-     verify it, rather than written off. */
-  if (res.error) return { status: "pending", gatewayRef: authority, detail: res.detail ?? res.error };
+  /* An unreachable Zarinpal is not a failed payment, and neither is a 500 from
+     it — the money may well have moved and we simply were not told. Both leave
+     the attempt open so a later retry of the same authority can still verify
+     it. Only a well-formed rejection below is a failure. */
+  if (res.error || !res.ok) {
+    return { status: "pending", gatewayRef: authority, detail: res.detail ?? res.error ?? `http ${res.status}` };
+  }
 
   const data = res.data?.data ?? {};
   const code = Number(data.code);

@@ -22,22 +22,32 @@
 
 import { currentUser, isAuthConfigured } from "./auth.js";
 import { jsonPrivate, readBody } from "./http.js";
-import { ensureSchema } from "./schema.js";
+import { payUrl, siteOrigin } from "./pay.js";
 import { deliverBrief } from "./telegram.js";
 import { clientKey, overLimit } from "./ratelimit.js";
 import {
   addMember,
+  briefByReference,
+  briefsForCustomer,
   briefCounts,
   briefPayload,
+  createInvoice,
   createProduct,
   createShop,
   createToken,
+  customerDetail,
+  customerForUser,
   deleteProduct,
+  ensureReady,
+  getInvoiceByReference,
   getOrder,
   getShop,
   hasDb,
+  invoicesForCustomer,
   listBriefs,
+  listCustomers,
   listEvents,
+  listInvoices,
   listMembers,
   listOrders,
   listProducts,
@@ -46,12 +56,14 @@ import {
   markBriefFailed,
   membershipsFor,
   orderCounts,
+  paymentsForInvoice,
   recordEvent,
   refreshMemberIdentity,
   removeMember,
   revokeToken,
   setOrderStatus,
   shopForToken,
+  updateInvoice,
   updateProduct,
   updateShop,
   upsertOrder,
@@ -59,6 +71,7 @@ import {
 } from "./db.js";
 import {
   LIMITS,
+  currencyId,
   eventId,
   handle,
   integer,
@@ -68,6 +81,14 @@ import {
   text,
   validateProduct,
 } from "../shared/orderSchema.js";
+import {
+  LIMITS as INVOICE_LIMITS,
+  currencyForLang,
+  invoiceStatusId,
+  isPayable,
+  validateInvoice,
+} from "../shared/invoiceSchema.js";
+import { gatewaysForInvoice } from "./gateways/index.js";
 
 const PREFIX = "/api/app/";
 
@@ -291,6 +312,179 @@ async function handleBriefs(request, env, db, actor, url, second) {
   return ok({ sent, failed, errors, counts: await briefCounts(db) });
 }
 
+/* ---- customers, and what they have bought ----
+
+   The studio's clients, not a shop's shoppers — so, like briefs above, these
+   sit outside the shop-scoped routes and are gated on ADMIN_TELEGRAM_IDS. A
+   studio account that belongs to no shop still has to be able to read them.
+
+   The customer's own view of the same rows is `handleMine` at the end, and it
+   is deliberately a different function: that one is gated on being the person
+   rather than on being staff, and returns one customer and never a list. */
+
+async function handleCustomers(url, db, second) {
+  if (second) {
+    const detail = await customerDetail(db, second);
+    return detail ? jsonPrivate(detail) : fail("not_found", 404);
+  }
+  return jsonPrivate(
+    await listCustomers(db, {
+      query: url.searchParams.get("q") ?? undefined,
+      before: url.searchParams.get("before") ?? undefined,
+      limit: url.searchParams.get("limit") ?? 30,
+    })
+  );
+}
+
+/* Raising one. The amount arrives the way a person types it — "400", "2,500" —
+   and parseMoney turns it into the currency's own minor units, which for IRR
+   means Rial and for everything else means cents. */
+async function handleInvoiceCreate(request, env, db) {
+  const { body, tooLarge, invalid } = await readBody(request);
+  if (tooLarge) return fail("payload_too_large", 413);
+  if (invalid) return fail("invalid_json", 400);
+
+  /* Against a brief, or against a customer directly. The brief is the usual
+     path — somebody read an enquiry and decided what it is worth — and it
+     carries the customer with it. */
+  const brief = body?.briefReference ? await briefByReference(db, body.briefReference) : null;
+  if (body?.briefReference && !brief) return fail("not_found", 404, { field: "briefReference" });
+
+  const customerId = text(body?.customerId, 40) || brief?.customerId;
+  if (!customerId) return fail("invalid", 422, { field: "customerId" });
+
+  const errors = validateInvoice(body);
+  if (Object.keys(errors).length) return fail("invalid_invoice", 422, { errors });
+
+  const currency = currencyId(body?.currency ?? defaultCurrency(env, brief?.lang));
+  const invoice = await createInvoice(db, {
+    customerId,
+    briefId: brief?.id ?? null,
+    title: text(body?.title, INVOICE_LIMITS.title),
+    description: text(body?.description, INVOICE_LIMITS.description),
+    amountCents: parseMoney(body?.amount, currency),
+    currency,
+    /* Draft unless the studio says otherwise. An invoice is only payable once
+       it has been sent, and sending it is a separate, deliberate act. */
+    status: invoiceStatusId(body?.status),
+    dueAt: body?.dueAt,
+  });
+
+  return ok(withLink(request, env, invoice));
+}
+
+/* Which currency an invoice starts in. The customer's language decides, and
+   PAYMENTS_CURRENCY_FA overrides the Persian default for a studio invoicing in
+   something other than Rial. */
+function defaultCurrency(env, lang) {
+  if (lang === "fa" && String(env?.PAYMENTS_CURRENCY_FA ?? "").trim()) {
+    return env.PAYMENTS_CURRENCY_FA;
+  }
+  return currencyForLang(lang);
+}
+
+/* An invoice plus the link to pay it. The token goes no further than the
+   studio's own authenticated response and the customer's own — see
+   invoicesForCustomer's `withToken`. */
+function withLink(request, env, invoice) {
+  const { token, ...rest } = invoice;
+  return {
+    invoice: rest,
+    payUrl: token ? payUrl(siteOrigin(request, env), token) : null,
+    gateways: gatewaysForInvoice(env, invoice),
+  };
+}
+
+async function handleInvoice(request, env, db, reference) {
+  if (request.method !== "POST") {
+    const invoice = await getInvoiceByReference(db, reference, { withToken: true });
+    if (!invoice) return fail("not_found", 404);
+    const [payments, detail] = await Promise.all([
+      paymentsForInvoice(db, invoice.id),
+      customerDetail(db, invoice.customerId),
+    ]);
+    return jsonPrivate({ ...withLink(request, env, invoice), payments, customer: detail?.customer ?? null });
+  }
+
+  const { body, invalid } = await readBody(request);
+  if (invalid) return fail("invalid_json", 400);
+
+  const existing = await getInvoiceByReference(db, reference);
+  if (!existing) return fail("not_found", 404);
+
+  /* Amount and title are validated only when they are actually being changed;
+     a request that only marks an invoice sent carries neither. */
+  const changesMoney = body?.title !== undefined || body?.amount !== undefined;
+  const currency = currencyId(body?.currency ?? existing.currency);
+  if (changesMoney) {
+    const errors = validateInvoice({
+      title: body?.title ?? existing.title,
+      amount: body?.amount ?? existing.amountCents / 100,
+      currency,
+    });
+    if (Object.keys(errors).length) return fail("invalid_invoice", 422, { errors });
+  }
+
+  const invoice = await updateInvoice(db, reference, {
+    title: body?.title,
+    description: body?.description,
+    amountCents: body?.amount === undefined ? undefined : parseMoney(body.amount, currency),
+    currency: body?.currency === undefined ? undefined : currency,
+    status: body?.status === undefined ? undefined : invoiceStatusId(body.status),
+    dueAt: body?.dueAt,
+  });
+  if (!invoice) return fail("not_found", 404);
+
+  const withToken = await getInvoiceByReference(db, reference, { withToken: true });
+  return ok(withLink(request, env, withToken));
+}
+
+async function handleInvoices(request, env, db, url, second) {
+  if (request.method === "POST") {
+    return second ? handleInvoice(request, env, db, second) : handleInvoiceCreate(request, env, db);
+  }
+  if (second) return handleInvoice(request, env, db, second);
+  return jsonPrivate(
+    await listInvoices(db, {
+      status: url.searchParams.get("status") ?? undefined,
+      before: url.searchParams.get("before") ?? undefined,
+      limit: url.searchParams.get("limit") ?? 30,
+    })
+  );
+}
+
+/* ---- the customer's own rows ----
+
+   Not gated on admin: this is a person reading what they themselves briefed
+   and what they themselves owe. `customerForUser` is where an earlier
+   anonymous row gets adopted, so somebody who briefed once without signing in
+   and once with sees both here, on their first visit and without being asked
+   to prove anything twice.
+
+   Everything returned is looked up *from their own subject*. There is no id in
+   the request for them to change. */
+async function handleMine(request, env, db, actor) {
+  const customer = await customerForUser(db, actor.user);
+  if (!customer) return fail("unauthorized", 401);
+
+  const [briefs, invoices] = await Promise.all([
+    briefsForCustomer(db, customer.id),
+    invoicesForCustomer(db, customer.id, { withToken: true }),
+  ]);
+
+  const origin = siteOrigin(request, env);
+  return jsonPrivate({
+    customer,
+    briefs,
+    /* The link is attached only to an invoice they can actually pay. A draft
+       was never sent to them and a paid one needs no link. */
+    invoices: invoices.map(({ token, ...invoice }) => ({
+      ...invoice,
+      payUrl: isPayable(invoice.status) && token ? payUrl(origin, token) : null,
+    })),
+  });
+}
+
 /* ---- the automation's way in ---- */
 
 async function handleIngest(request, env, db) {
@@ -447,7 +641,7 @@ export async function handleApp(request, env, url) {
      nobody needs a terminal to run migrations. Idempotent, and checked once
      per isolate rather than once per request. */
   try {
-    await ensureSchema(db);
+    await ensureReady(db);
   } catch (err) {
     console.error("Dashboard schema could not be applied:", err.message);
     return fail("schema_unavailable", 503, { hint: err.message });
@@ -476,6 +670,24 @@ export async function handleApp(request, env, url) {
   /* Before the shop lookup: these belong to the studio, not to a shop, and a
      studio account may be a member of none. */
   if (head === "briefs") return handleBriefs(request, env, db, actor, url, second);
+
+  /* A customer reading their own rows, before the admin gate and before the
+     shop lookup: they are neither staff nor a member of anything. */
+  if (head === "mine") {
+    if (post) return fail("method_not_allowed", 405);
+    return handleMine(request, env, db, actor);
+  }
+
+  if (head === "customers" || head === "invoices") {
+    if (!actor.admin) return fail("forbidden", 403);
+    if (head === "customers") {
+      /* Customers are made by briefing, never by a request. There is nothing
+         to POST here. */
+      if (post) return fail("method_not_allowed", 405);
+      return handleCustomers(url, db, second);
+    }
+    return handleInvoices(request, env, db, url, second);
+  }
 
   const context = await shopContext(db, actor, url, {
     role: (head === "settings" && post) || head === "members" || head === "tokens" ? "owner" : undefined,

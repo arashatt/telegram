@@ -17,14 +17,17 @@ import {
 } from "./auth.js";
 import { claudeModel, extract as claudeExtract, hasClaude, streamChat } from "./claude.js";
 import { handleApp, isAppRoute } from "./app.js";
+import { handlePay, isPayRoute } from "./pay.js";
+import { configuredGateways } from "./gateways/index.js";
 import {
   briefCounts,
+  ensureReady,
   hasDb,
+  linkBriefCustomer,
   markBriefDelivered,
   markBriefFailed,
   storeBrief,
 } from "./db.js";
-import { ensureSchema } from "./schema.js";
 import { CORS, json, readBody } from "./http.js";
 import { clientKey, overLimit } from "./ratelimit.js";
 import {
@@ -52,7 +55,7 @@ import {
 /* Bumped whenever something ships that is hard to confirm from the outside.
    /api/health echoes it, so "is the deploy actually live?" is one request
    rather than an inference from symptoms. */
-const BUILD = "2026-09-13-settings-presence";
+const BUILD = "2026-09-14-invoices-and-payments";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const chatModel = (env) => env.CHAT_MODEL || DEFAULT_MODEL;
@@ -264,8 +267,12 @@ async function handleRequirements(request, env) {
 async function recordBrief(env, submission) {
   if (!hasDb(env)) return false;
   try {
-    await ensureSchema(env.DB);
+    await ensureReady(env.DB);
     await storeBrief(env.DB, submission);
+    /* Attached to a person in the same breath as it is stored, so a brief is
+       never an anonymous row waiting for a backfill to notice it. This is what
+       "what has this customer ordered before?" reads. */
+    await linkBriefCustomer(env.DB, submission.reference, submission);
     return true;
   } catch (err) {
     console.error("Could not record the brief:", err.stack ?? err.message);
@@ -305,6 +312,12 @@ const SETTING_NAMES = [
   "TELEGRAM_OIDC_SCOPE",
   "TELEGRAM_LOGIN_BOT_TOKEN",
   "ADMIN_TELEGRAM_IDS",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "ZARINPAL_MERCHANT_ID",
+  "ZIBAL_MERCHANT",
+  "PAYMENTS_CURRENCY_FA",
+  "SITE_ORIGIN",
   "ANTHROPIC_API_KEY",
   "CLAUDE_API_KEY",
   "CLAUDE_MODEL",
@@ -354,6 +367,10 @@ async function handleHealth(request, env) {
        pages never touch it — so it is reported but not required. */
     dashboardDb: hasDb(env),
     dashboardAdmins: Boolean(env.ADMIN_TELEGRAM_IDS),
+    /* Which gateways could take money today. Empty is a valid deploy — the
+       site quoted by hand for a year before this existed — so it is reported
+       and never required. */
+    payments: configuredGateways(env).length > 0,
   };
 
   // Only the things the site cannot do its job without.
@@ -552,6 +569,11 @@ export default {
        because it is the only part of this Worker with path parameters, its own
        tenancy rules and a database behind it. */
     if (isAppRoute(url.pathname)) return handleApp(request, env, url);
+
+    /* The payer's side: a link somebody was sent, and the gateways calling
+       back about it. No session, its own module, and the only routes here that
+       a stranger is meant to reach. */
+    if (isPayRoute(url.pathname)) return handlePay(request, env, url);
 
     const getHandler = GET_ROUTES[url.pathname];
     const postHandler = POST_ROUTES[url.pathname];
