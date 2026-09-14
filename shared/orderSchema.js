@@ -11,8 +11,22 @@
    Always integer minor units with a currency beside them. Floats do not add
    up, and a total that is a cent out is a support ticket. */
 
-export const CURRENCIES = ["USD", "EUR", "GBP", "AED", "TRY"];
+export const CURRENCIES = ["USD", "EUR", "GBP", "AED", "TRY", "IRR"];
 export const DEFAULT_CURRENCY = "USD";
+
+/* How many digits the currency's minor unit has. Everything here stores and
+   passes around integer minor units, and dividing all of them by 100 is wrong
+   for the ones that have no subunit at all: an IRR amount is Rial, whole, and
+   a blanket /100 would quietly report a hundredth of every Iranian invoice.
+
+   Iranian prices are usually *spoken* in Toman, which is ten Rial. That
+   conversion belongs to the payment gateways and nowhere else — the amount
+   stored on an invoice is always in the currency named beside it. */
+export const MINOR_UNITS = { USD: 2, EUR: 2, GBP: 2, AED: 2, TRY: 2, IRR: 0 };
+
+export const minorUnits = (currency) => MINOR_UNITS[currencyId(currency)] ?? 2;
+
+const scaleOf = (currency) => 10 ** minorUnits(currency);
 
 export const currencyId = (value) =>
   CURRENCIES.includes(String(value ?? "").toUpperCase())
@@ -22,23 +36,30 @@ export const currencyId = (value) =>
 /* Intl does the symbol, the separators and the decimal count — including the
    currencies that have none. `lang` only picks the numerals and grouping. */
 export function formatMoney(cents, currency = DEFAULT_CURRENCY, lang = "en") {
-  const amount = Number(cents ?? 0) / 100;
+  const amount = Number(cents ?? 0) / scaleOf(currency);
   try {
     return new Intl.NumberFormat(lang === "fa" ? "fa-IR" : "en-US", {
       style: "currency",
       currency: currencyId(currency),
-      maximumFractionDigits: 2,
+      maximumFractionDigits: minorUnits(currency),
     }).format(amount);
   } catch {
-    return `${amount.toFixed(2)} ${currencyId(currency)}`;
+    return `${amount.toFixed(minorUnits(currency))} ${currencyId(currency)}`;
   }
 }
 
 /* Accepts what a person types — "40", "40.50", "$40.50", "۴۰" — and returns
-   cents, or null when it is not a number at all. Rounding is done once, here,
-   so no caller has to decide. */
-export function parseMoney(input) {
-  if (typeof input === "number") return Number.isFinite(input) ? Math.round(input * 100) : null;
+   the amount in the currency's minor unit, or null when it is not a number at
+   all. Rounding is done once, here, so no caller has to decide.
+
+   The currency matters: 40 is 4000 cents of USD and 40 Rial of IRR. Callers
+   that omit it get the two-digit default, which is what every existing one
+   wants. */
+export function parseMoney(input, currency = DEFAULT_CURRENCY) {
+  const scale = scaleOf(currency);
+  if (typeof input === "number") {
+    return Number.isFinite(input) ? Math.round(input * scale) : null;
+  }
   const normalized = String(input ?? "")
     /* Persian and Arabic-Indic digits, so a Persian keyboard is not a
        validation error. */
@@ -49,7 +70,7 @@ export function parseMoney(input) {
   if (!normalized || !/^-?\d*\.?\d*$/.test(normalized)) return null;
   const value = Number(normalized);
   if (!Number.isFinite(value)) return null;
-  return Math.round(value * 100);
+  return Math.round(value * scale);
 }
 
 /* ---- order status ----

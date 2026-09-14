@@ -155,9 +155,92 @@ CREATE INDEX IF NOT EXISTS idx_briefs_undelivered ON briefs (delivered_at, creat
 CREATE UNIQUE INDEX IF NOT EXISTS idx_briefs_reference ON briefs (reference);
 `;
 
+/* Customers, and what they have bought.
+
+   A brief on its own is an anonymous row, so "what has this person ordered
+   before?" had no answer. A customer is the identity those rows hang on, and
+   an invoice is what turns a brief into a purchase.
+
+   `customers.subject` is the OIDC subject from Telegram's sign-in — scoped to
+   this site, nullable, because most people brief without signing in. Matching
+   by email or handle is what lets a later sign-in adopt the rows they left
+   behind. */
+const CUSTOMERS_0003 = `
+CREATE TABLE IF NOT EXISTS customers (
+  id          TEXT PRIMARY KEY,
+  subject     TEXT,
+  name        TEXT NOT NULL DEFAULT '',
+  email       TEXT NOT NULL DEFAULT '',
+  telegram    TEXT NOT NULL DEFAULT '',
+  phone       TEXT NOT NULL DEFAULT '',
+  lang        TEXT NOT NULL DEFAULT 'en',
+  note        TEXT NOT NULL DEFAULT '',
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+
+-- One row per signed-in person. Partial, because most customers have no
+-- subject at all and NULLs would collide.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_subject
+  ON customers (subject) WHERE subject IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_customers_email ON customers (email) WHERE email <> '';
+CREATE INDEX IF NOT EXISTS idx_customers_telegram ON customers (telegram) WHERE telegram <> '';
+
+ALTER TABLE briefs ADD COLUMN customer_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_briefs_customer ON briefs (customer_id, created_at DESC);
+
+-- What you quoted, and what it is for. Bespoke per brief: no price is ever
+-- published, which is what the site promises.
+CREATE TABLE IF NOT EXISTS invoices (
+  id            TEXT PRIMARY KEY,
+  reference     TEXT NOT NULL,
+  -- The unguessable half of the payment link. Knowing it is what authorises
+  -- reading and paying one invoice, so it is never derived from anything.
+  token         TEXT NOT NULL,
+  customer_id   TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  brief_id      TEXT REFERENCES briefs(id) ON DELETE SET NULL,
+  title         TEXT NOT NULL DEFAULT '',
+  description   TEXT NOT NULL DEFAULT '',
+  amount_cents  INTEGER NOT NULL DEFAULT 0,
+  currency      TEXT NOT NULL DEFAULT 'USD',
+  status        TEXT NOT NULL DEFAULT 'draft',
+  due_at        INTEGER,
+  paid_at       INTEGER,
+  created_at    INTEGER NOT NULL,
+  updated_at    INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_reference ON invoices (reference);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_token ON invoices (token);
+CREATE INDEX IF NOT EXISTS idx_invoices_customer ON invoices (customer_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices (status, created_at DESC);
+
+-- Every attempt, not only the ones that worked. A payment that failed is the
+-- thing somebody rings up about.
+CREATE TABLE IF NOT EXISTS payments (
+  id            TEXT PRIMARY KEY,
+  invoice_id    TEXT NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  gateway       TEXT NOT NULL,
+  gateway_ref   TEXT NOT NULL DEFAULT '',
+  amount_cents  INTEGER NOT NULL DEFAULT 0,
+  currency      TEXT NOT NULL DEFAULT 'USD',
+  status        TEXT NOT NULL DEFAULT 'started',
+  detail        TEXT NOT NULL DEFAULT '',
+  created_at    INTEGER NOT NULL,
+  settled_at    INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments (invoice_id, created_at DESC);
+-- The index that makes a replayed webhook or a double-tapped callback settle
+-- once rather than twice.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_ref
+  ON payments (gateway, gateway_ref) WHERE gateway_ref <> '';
+`;
+
 export const MIGRATIONS = [
   { id: "0001_dashboard", sql: DASHBOARD_0001 },
   { id: "0002_briefs", sql: BRIEFS_0002 },
+  { id: "0003_customers", sql: CUSTOMERS_0003 },
 ];
 
 /* Comments go first, including trailing ones: the file is split on semicolons,

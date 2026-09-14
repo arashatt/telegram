@@ -20,6 +20,7 @@ import {
   statusId,
   text,
 } from "../shared/orderSchema.js";
+import { invoiceStatusId } from "../shared/invoiceSchema.js";
 
 export const hasDb = (env) => Boolean(env?.DB?.prepare);
 
@@ -826,4 +827,481 @@ export async function briefCounts(db) {
     )
     .first();
   return { total: row?.total ?? 0, undelivered: row?.undelivered ?? 0 };
+}
+
+/* ---- customers ----
+
+   A brief on its own is an anonymous row. A customer is the identity those rows
+   hang on, which is what makes "what has this person ordered before?" a
+   question with an answer.
+
+   Not shop-scoped: these are the studio's clients, not a shop's shoppers, and
+   worker/app.js gates them on ADMIN_TELEGRAM_IDS rather than on membership. */
+
+const lowerEmail = (value) => text(value, 160).toLowerCase();
+
+const CUSTOMER_COLUMNS = `id, subject, name, email, telegram, phone, lang, note,
+                          created_at AS createdAt, updated_at AS updatedAt`;
+
+export async function getCustomer(db, id) {
+  if (!id) return null;
+  return db.prepare(`SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE id = ?`).bind(String(id)).first();
+}
+
+export async function customerBySubject(db, subject) {
+  if (!subject) return null;
+  return db
+    .prepare(`SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE subject = ?`)
+    .bind(String(subject))
+    .first();
+}
+
+/* Fills gaps, never overwrites. A later brief that arrives with a blank name
+   must not erase the name an earlier one gave, and a *different* email must not
+   silently replace the one this customer was matched on — that would move the
+   identity out from under the rows already attached to it. */
+async function fillCustomerGaps(db, customer, fields) {
+  const patch = {
+    name: customer.name || text(fields.name, LIMITS.customer),
+    email: customer.email || lowerEmail(fields.email),
+    telegram: customer.telegram || handle(fields.telegram),
+    phone: customer.phone || text(fields.phone, 40),
+    lang: fields.lang === "fa" || fields.lang === "en" ? fields.lang : customer.lang,
+  };
+  const changed = Object.entries(patch).some(([key, value]) => value !== customer[key]);
+  if (!changed) return customer;
+
+  await db
+    .prepare(
+      `UPDATE customers SET name = ?, email = ?, telegram = ?, phone = ?, lang = ?, updated_at = ?
+        WHERE id = ?`
+    )
+    .bind(patch.name, patch.email, patch.telegram, patch.phone, patch.lang, now(), customer.id)
+    .run();
+  return { ...customer, ...patch };
+}
+
+async function createCustomer(db, { subject, name, email, telegram, phone, lang }) {
+  const id = newId("cust");
+  const at = now();
+  await db
+    .prepare(
+      `INSERT INTO customers (id, subject, name, email, telegram, phone, lang, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      id,
+      subject || null,
+      text(name, LIMITS.customer),
+      lowerEmail(email),
+      handle(telegram),
+      text(phone, 40),
+      lang === "fa" ? "fa" : "en",
+      at,
+      at
+    )
+    .run();
+  return getCustomer(db, id);
+}
+
+async function anonymousMatch(db, email, telegram) {
+  if (email) {
+    const byEmail = await db
+      .prepare(`SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE email = ? ORDER BY created_at LIMIT 1`)
+      .bind(email)
+      .first();
+    if (byEmail) return byEmail;
+  }
+  if (telegram) {
+    return db
+      .prepare(`SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE telegram = ? ORDER BY created_at LIMIT 1`)
+      .bind(telegram)
+      .first();
+  }
+  return null;
+}
+
+/* Which customer a submitted brief belongs to, in four steps:
+
+     1. the OIDC subject, when they were signed in — the only identifier here
+        that somebody had to prove;
+     2. the email they typed;
+     3. the Telegram handle they typed;
+     4. otherwise a customer who did not exist until now.
+
+   A signed-in person whose email or handle matches an earlier anonymous row
+   adopts it, which is what makes a purchase history survive somebody briefing
+   once without signing in and once with. */
+export async function resolveCustomer(db, submission) {
+  const form = submission?.form ?? {};
+  const subject = String(submission?.verified?.id ?? "");
+  const fields = {
+    name: form.contactName,
+    email: form.email,
+    telegram: form.telegram,
+    phone: form.phone,
+    lang: submission?.lang,
+  };
+  const email = lowerEmail(form.email);
+  const telegram = handle(form.telegram);
+
+  if (subject) {
+    const known = await customerBySubject(db, subject);
+    if (known) return fillCustomerGaps(db, known, fields);
+
+    const orphan = await anonymousMatch(db, email, telegram);
+    if (orphan && !orphan.subject) {
+      await db
+        .prepare(`UPDATE customers SET subject = ?, updated_at = ? WHERE id = ? AND subject IS NULL`)
+        .bind(subject, now(), orphan.id)
+        .run();
+      return fillCustomerGaps(db, { ...orphan, subject }, fields);
+    }
+    return createCustomer(db, { subject, ...fields });
+  }
+
+  const existing = await anonymousMatch(db, email, telegram);
+  if (existing) return fillCustomerGaps(db, existing, fields);
+  return createCustomer(db, { subject: "", ...fields });
+}
+
+/* The signed-in person's own customer row, adopting an earlier anonymous one
+   when the Telegram handle lines up. Their email is not in the sign-in claims,
+   so the handle is the only key available here. */
+export async function customerForUser(db, user) {
+  const subject = String(user?.id ?? "");
+  if (!subject) return null;
+
+  const known = await customerBySubject(db, subject);
+  if (known) return known;
+
+  const telegram = handle(user?.username);
+  const orphan = telegram ? await anonymousMatch(db, "", telegram) : null;
+  if (orphan && !orphan.subject) {
+    await db
+      .prepare(`UPDATE customers SET subject = ?, updated_at = ? WHERE id = ? AND subject IS NULL`)
+      .bind(subject, now(), orphan.id)
+      .run();
+    return { ...orphan, subject };
+  }
+
+  return createCustomer(db, {
+    subject,
+    name: [user?.firstName, user?.lastName].filter(Boolean).join(" "),
+    email: "",
+    telegram,
+    phone: user?.phone ?? "",
+    lang: "en",
+  });
+}
+
+/* Paid totals, grouped by currency and never added across them. A customer
+   with a dollar invoice and a rial one has two totals, not one meaningless
+   number. */
+async function paidTotals(db, ids) {
+  if (ids.length === 0) return {};
+  const { results } = await db
+    .prepare(
+      `SELECT customer_id AS customerId, currency, SUM(amount_cents) AS cents
+         FROM invoices
+        WHERE status = 'paid' AND customer_id IN (${marks(ids.length)})
+        GROUP BY customer_id, currency`
+    )
+    .bind(...ids)
+    .all();
+
+  const totals = {};
+  for (const row of results ?? []) {
+    (totals[row.customerId] ??= []).push({ currency: row.currency, cents: row.cents });
+  }
+  return totals;
+}
+
+export async function listCustomers(db, { limit = 30, before, query } = {}) {
+  const size = integer(limit, { min: 1, max: 100 });
+  const clauses = [];
+  const values = [];
+
+  const search = text(query, 80).toLowerCase();
+  if (search) {
+    clauses.push("(lower(c.name) LIKE ? OR c.email LIKE ? OR c.telegram LIKE ?)");
+    values.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  const having = before ? "HAVING lastAt < ?" : "";
+  if (before) values.push(integer(before, { min: 0 }));
+
+  const { results } = await db
+    .prepare(
+      `SELECT c.id, c.name, c.email, c.telegram, c.lang, c.subject IS NOT NULL AS signedIn,
+              c.created_at AS createdAt,
+              (SELECT COUNT(*) FROM briefs b WHERE b.customer_id = c.id) AS briefs,
+              (SELECT COUNT(*) FROM invoices i WHERE i.customer_id = c.id) AS invoices,
+              (SELECT COUNT(*) FROM invoices i WHERE i.customer_id = c.id AND i.status = 'sent') AS awaiting,
+              MAX(
+                c.created_at,
+                COALESCE((SELECT MAX(b.created_at) FROM briefs b WHERE b.customer_id = c.id), 0),
+                COALESCE((SELECT MAX(i.created_at) FROM invoices i WHERE i.customer_id = c.id), 0)
+              ) AS lastAt
+         FROM customers c
+         ${where}
+         ${having}
+         ORDER BY lastAt DESC
+         LIMIT ?`
+    )
+    .bind(...values, size + 1)
+    .all();
+
+  const rows = results ?? [];
+  const page = rows.slice(0, size);
+  const totals = await paidTotals(db, page.map((row) => row.id));
+
+  return {
+    customers: page.map((row) => ({ ...row, paid: totals[row.id] ?? [] })),
+    cursor: rows.length > size ? page[page.length - 1].lastAt : null,
+  };
+}
+
+export async function briefsForCustomer(db, customerId) {
+  const { results } = await db
+    .prepare(
+      `SELECT id, reference, platform, lang, bot_name AS botName, summary,
+              delivered_at AS deliveredAt, created_at AS createdAt
+         FROM briefs WHERE customer_id = ? ORDER BY created_at DESC LIMIT 50`
+    )
+    .bind(String(customerId))
+    .all();
+  return results ?? [];
+}
+
+/* ---- invoices ---- */
+
+const INVOICE_COLUMNS = `id, reference, customer_id AS customerId, brief_id AS briefId,
+                         title, description, amount_cents AS amountCents, currency, status,
+                         due_at AS dueAt, paid_at AS paidAt,
+                         created_at AS createdAt, updated_at AS updatedAt`;
+
+export async function invoicesForCustomer(db, customerId) {
+  const { results } = await db
+    .prepare(`SELECT ${INVOICE_COLUMNS} FROM invoices WHERE customer_id = ? ORDER BY created_at DESC`)
+    .bind(String(customerId))
+    .all();
+  return results ?? [];
+}
+
+export async function customerDetail(db, id) {
+  const customer = await getCustomer(db, id);
+  if (!customer) return null;
+  const [briefs, invoices] = await Promise.all([
+    briefsForCustomer(db, id),
+    invoicesForCustomer(db, id),
+  ]);
+  return { customer, briefs, invoices };
+}
+
+export async function listInvoices(db, { status, limit = 30, before } = {}) {
+  const size = integer(limit, { min: 1, max: 100 });
+  const clauses = [];
+  const values = [];
+  if (invoiceStatusId(status) === status && status) {
+    clauses.push("i.status = ?");
+    values.push(status);
+  }
+  if (before) {
+    clauses.push("i.created_at < ?");
+    values.push(integer(before, { min: 0 }));
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+
+  const { results } = await db
+    .prepare(
+      `SELECT i.id, i.reference, i.customer_id AS customerId, i.title,
+              i.amount_cents AS amountCents, i.currency, i.status,
+              i.paid_at AS paidAt, i.created_at AS createdAt,
+              c.name AS customerName, c.email AS customerEmail, c.telegram AS customerTelegram
+         FROM invoices i JOIN customers c ON c.id = i.customer_id
+         ${where}
+         ORDER BY i.created_at DESC
+         LIMIT ?`
+    )
+    .bind(...values, size + 1)
+    .all();
+
+  const rows = results ?? [];
+  const page = rows.slice(0, size);
+  return { invoices: page, cursor: rows.length > size ? page[page.length - 1].createdAt : null };
+}
+
+export async function getInvoiceByReference(db, reference) {
+  return db
+    .prepare(`SELECT ${INVOICE_COLUMNS} FROM invoices WHERE reference = ?`)
+    .bind(text(reference, 32))
+    .first();
+}
+
+/* The token is the whole authorisation for a payment link, so it is looked up
+   and never listed, never logged, and never returned to anybody. */
+export async function getInvoiceByToken(db, token) {
+  const clean = String(token ?? "").replace(/[^0-9a-f]/g, "");
+  if (clean.length !== 64) return null;
+  return db
+    .prepare(`SELECT ${INVOICE_COLUMNS} FROM invoices WHERE token = ?`)
+    .bind(clean)
+    .first();
+}
+
+export async function createInvoice(db, input) {
+  const id = newId("inv");
+  const at = now();
+  const reference = `INV-${crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const token = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+  await db
+    .prepare(
+      `INSERT INTO invoices (id, reference, token, customer_id, brief_id, title, description,
+                             amount_cents, currency, status, due_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      id,
+      reference,
+      token,
+      String(input.customerId),
+      input.briefId ? String(input.briefId) : null,
+      text(input.title, 120),
+      text(input.description, 1000),
+      integer(input.amountCents, { min: 0 }),
+      currencyId(input.currency),
+      invoiceStatusId(input.status),
+      input.dueAt ? integer(input.dueAt, { min: 0 }) : null,
+      at,
+      at
+    )
+    .run();
+
+  /* The only moment the token leaves the database. The caller turns it into a
+     link and it is never readable again. */
+  return { ...(await getInvoiceByReference(db, reference)), token };
+}
+
+export async function updateInvoice(db, reference, patch) {
+  const existing = await getInvoiceByReference(db, reference);
+  if (!existing) return null;
+  /* A paid invoice is a record of something that happened. Its amount and what
+     it was for stop being editable the moment money arrives. */
+  const locked = existing.status === "paid";
+
+  await db
+    .prepare(
+      `UPDATE invoices SET title = ?, description = ?, amount_cents = ?, currency = ?,
+              status = ?, due_at = ?, updated_at = ?
+        WHERE reference = ?`
+    )
+    .bind(
+      locked || patch.title === undefined ? existing.title : text(patch.title, 120),
+      locked || patch.description === undefined ? existing.description : text(patch.description, 1000),
+      locked || patch.amountCents === undefined ? existing.amountCents : integer(patch.amountCents, { min: 0 }),
+      locked || patch.currency === undefined ? existing.currency : currencyId(patch.currency),
+      patch.status === undefined ? existing.status : invoiceStatusId(patch.status),
+      patch.dueAt === undefined ? existing.dueAt : patch.dueAt && integer(patch.dueAt, { min: 0 }),
+      now(),
+      existing.reference
+    )
+    .run();
+  return getInvoiceByReference(db, existing.reference);
+}
+
+/* ---- payments ----
+
+   One row per attempt. The unique index on (gateway, gateway_ref) is what makes
+   a replayed webhook or a double-tapped callback settle an invoice once. */
+
+export async function startPaymentRecord(db, invoice, gateway, gatewayRef) {
+  const id = newId("pay");
+  await db
+    .prepare(
+      `INSERT INTO payments (id, invoice_id, gateway, gateway_ref, amount_cents, currency,
+                             status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'started', ?)
+       ON CONFLICT (gateway, gateway_ref) DO NOTHING`
+    )
+    .bind(id, invoice.id, gateway, text(gatewayRef, 120), invoice.amountCents, invoice.currency, now())
+    .run();
+  return { id, gatewayRef };
+}
+
+/* Returns whether *this* call was the one that settled it. A replay gets
+   `settled: false` and changes nothing, which is the whole point. */
+export async function settlePaymentRecord(db, { gateway, gatewayRef, ok, detail }) {
+  const ref = text(gatewayRef, 120);
+  if (!ref) return { settled: false, reason: "no_reference" };
+
+  const payment = await db
+    .prepare(
+      `SELECT id, invoice_id AS invoiceId, status FROM payments WHERE gateway = ? AND gateway_ref = ?`
+    )
+    .bind(gateway, ref)
+    .first();
+  if (!payment) return { settled: false, reason: "unknown_reference" };
+  if (payment.status === "paid") return { settled: false, reason: "already_settled", invoiceId: payment.invoiceId };
+
+  const at = now();
+  await db
+    .prepare(`UPDATE payments SET status = ?, detail = ?, settled_at = ? WHERE id = ?`)
+    .bind(ok ? "paid" : "failed", text(detail, 300), at, payment.id)
+    .run();
+
+  if (!ok) return { settled: false, reason: "declined", invoiceId: payment.invoiceId };
+
+  await db
+    .prepare(`UPDATE invoices SET status = 'paid', paid_at = ?, updated_at = ? WHERE id = ? AND status <> 'paid'`)
+    .bind(at, at, payment.invoiceId)
+    .run();
+
+  return { settled: true, invoiceId: payment.invoiceId };
+}
+
+export async function paymentsForInvoice(db, invoiceId) {
+  const { results } = await db
+    .prepare(
+      `SELECT gateway, gateway_ref AS gatewayRef, status, detail,
+              created_at AS createdAt, settled_at AS settledAt
+         FROM payments WHERE invoice_id = ? ORDER BY created_at DESC`
+    )
+    .bind(String(invoiceId))
+    .all();
+  return results ?? [];
+}
+
+/* ---- one-time attachment of briefs stored before customers existed ---- */
+
+let backfilled = false;
+
+export async function backfillCustomers(db) {
+  if (backfilled) return;
+  const pending = await db
+    .prepare(`SELECT id, payload FROM briefs WHERE customer_id IS NULL LIMIT 200`)
+    .all();
+
+  for (const row of pending.results ?? []) {
+    let submission = null;
+    try {
+      submission = JSON.parse(row.payload);
+    } catch {
+      /* A payload that will not parse cannot be attached to anybody, and
+         failing the whole backfill over one bad row would strand the rest. */
+    }
+    if (!submission) continue;
+    const customer = await resolveCustomer(db, submission);
+    await db
+      .prepare(`UPDATE briefs SET customer_id = ? WHERE id = ? AND customer_id IS NULL`)
+      .bind(customer.id, row.id)
+      .run();
+  }
+
+  /* Only stop looking once a pass finds nothing: a page of 200 leaves the rest
+     for the next request rather than running past the Worker's time limit. */
+  if ((pending.results ?? []).length === 0) backfilled = true;
 }
